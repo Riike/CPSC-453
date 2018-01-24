@@ -1,0 +1,21 @@
+///////////////////////
+// HOW TO BUILD     //
+/////////////////////
+
+Dependencies:
+
+GLFW
+If on Ubuntu you can run:
+	sudo apt-get install libglfw3-dev libglfw3
+Or download directly from: 
+	https://www.opengl.org/discussion_boards/showthread.php/200108-Installing-glfw-on-Ubuntu-16-04
+
+
+Makefile build commands:
+
+make 
+	Builds the project and creates directory for object files
+make clean
+	Deletes executable, object files and object directory
+
+Note: This is designed for linux, however it may work on Mac OSX, while it is untested. For a more reliable version, download the xcode version.
