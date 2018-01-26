@@ -1,17 +1,13 @@
-// ==========================================================================
-// Barebones OpenGL Core Profile Boilerplate
-//    using the GLFW windowing system (http://www.glfw.org)
-//
-// Loosely based on
-//  - Chris Wellons' example (https://github.com/skeeto/opengl-demo) and
-//  - Camilla Berglund's example (http://www.glfw.org/docs/latest/quick.html)
-//
-// Author:  Sonny Chan, University of Calgary
-// Co-Authors:
-//			Jeremy Hart, University of Calgary
-//			John Hall, University of Calgary
-// Date:    December 2015
-// ==========================================================================
+/*
+ * =======================================
+ * assignemnt_1.cpp
+ *
+ * Based on the tutorial boilerplate code
+ * Author: Henry Tran, University of Calgary
+ *
+ * Date: January 2018
+ * =======================================
+ */
 
 #include <iostream>
 #include <fstream>
@@ -25,7 +21,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "dragon.h"
+#include "square.h"
+#include "diamond.h"
 #include <vector>
 
 using namespace std;
@@ -40,7 +37,7 @@ string LoadSource(const string &filename);
 GLuint CompileShader(GLenum shaderType, const string &source);
 GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 
-int dragonCurveIterations = 0;
+int level = 3;
 
 // --------------------------------------------------------------------------
 // Functions to set up OpenGL shader programs for rendering
@@ -137,8 +134,7 @@ bool LoadGeometry(Geometry *geometry, vec2 *vertices, vec3 *colours, int element
 
 	// create an array buffer object for storing our vertices
 	glBindBuffer(GL_ARRAY_BUFFER, geometry->vertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec2)*geometry->elementCount, vertices, GL_STATIC_DRAW);
-
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vec2)*geometry->elementCount, vertices, GL_STATIC_DRAW);
 	// create another one for storing our colours
 	glBindBuffer(GL_ARRAY_BUFFER, geometry->colourBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3)*geometry->elementCount, colours, GL_STATIC_DRAW);
@@ -173,7 +169,10 @@ void RenderScene(Geometry *geometry, GLuint program)
 	// scene geometry, then tell OpenGL to draw our geometry
 	glUseProgram(program);
 	glBindVertexArray(geometry->vertexArray);
-	glDrawArrays(GL_LINES, 0, geometry->elementCount);
+        for (int i = 0; i < geometry->elementCount; i++) {
+            glDrawArrays(GL_LINE_LOOP, i*4, 4);
+        }
+
 
 	// reset state to default (no shader or geometry bound)
 	glBindVertexArray(0);
@@ -200,79 +199,45 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
-
-//Generate Dragon Curve
-void generateDragonCurve(Line initLine, int iterations, vector<vec2>* points, vector<vec3>* colors)
+void generateSquare(int level, vector<vec2>* points, vector<vec3>* colors)
 {
-	points->clear();
-	colors->clear();
+    points->clear();
+    colors->clear();
 
-	vector<Line> lines = {initLine};
+    vector<Square> squares;
+    vector<Diamond> diamonds;
 
-	vec3 startColor = vec3(0, 1, 1);
-	vec3 endColor = vec3(1, 0, 1);
+    for (int i = 0; i < level; i++) {
+        squares.push_back(Square(0.5f/pow(2, i)));
+        diamonds.push_back(Diamond(0.5f/pow(2, i)));
+    }
 
-	vector<vec3> oldColors = {startColor, endColor};
+    vec3 color(1, 1, 1);
 
-	for(int i=0; i<iterations; i++)
-	{
-		vector<Line> newLines;
-		vector<vec3> newColors;
+    for (int i = 0; i < squares.size(); i++) {
+        points->push_back(squares[i].a);
+        points->push_back(squares[i].b);
+        points->push_back(squares[i].c);
+        points->push_back(squares[i].d);
 
-		for(int j=0; j<lines.size(); j++)
-		{
-			Line a, b;
+        for (int j = 0; j < 4; j++) {
+            colors->push_back(color);
+        }
+    }
 
-			dragonCurveSplit(lines[j], &a, &b);
-
-			newLines.push_back(a);
-			newLines.push_back(b);
-
-
-			if(i == 0)
-			{
-				newColors.push_back(startColor);
-				newColors.push_back(vec3(1, 1, 1));
-				newColors.push_back(endColor);
-				newColors.push_back(vec3(1, 1, 1));
-			}
-			else
-			{
-				vec3 midColor = 0.5f*oldColors[2*j] + 0.5f*oldColors[2*j+1];
-
-				newColors.push_back(oldColors[2*j]);
-				newColors.push_back(midColor);
-				newColors.push_back(oldColors[2*j+1]);
-				newColors.push_back(midColor);
-			}
-		}
-
-		lines.swap(newLines);
-		oldColors.swap(newColors);
-	}
+    for (int i = 0; i < diamonds.size(); i++) {
+        points->push_back(diamonds[i].a);
+        points->push_back(diamonds[i].b);
+        points->push_back(diamonds[i].c);
+        points->push_back(diamonds[i].d);
 
 
-	for(int i=0; i<lines.size(); i++)
-	{
-		Line l = lines[i];
-		points->push_back(l.a);
-		points->push_back(l.b);
-	}
-
-	colors->swap(oldColors);
-
+        for (int j = 0; j < 4; j++) {
+            colors->push_back(color);
+        }
+    }
 }
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	if(action == GLFW_PRESS)
-	{
-		if(key == GLFW_KEY_D)
-			dragonCurveIterations++;
-		else if(key == GLFW_KEY_F)
-			dragonCurveIterations = std::max(dragonCurveIterations-1, 0);
-	}
-}
 
 // ==========================================================================
 // PROGRAM ENTRY POINT
@@ -287,13 +252,18 @@ int main(int argc, char *argv[])
 	glfwSetErrorCallback(ErrorCallback);
 
 	// attempt to create a window with an OpenGL 4.1 core profile context
+        // OpenGL context stores all the state associated with this instance of openGL
+        // It represents the potentially visible default framebuffer that rendering commands will draw
+        // to the framebuffer object
 	GLFWwindow *window = 0;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        // Create window object
 	int width = 512, height = 512;
-	window = glfwCreateWindow(width, height, "CPSC 453 OpenGL Boilerplate", 0, 0);
+	window = glfwCreateWindow(width, height, "CPSC 453 Assignment 1", 0, 0);
 	if (!window) {
 		cout << "Program failed to create GLFW window, TERMINATING" << endl;
 		glfwTerminate();
@@ -301,7 +271,7 @@ int main(int argc, char *argv[])
 	}
 
 	// set keyboard callback function and make our context current (active)
-	glfwSetKeyCallback(window, key_callback);
+	glfwSetKeyCallback(window, KeyCallback);
 	glfwMakeContextCurrent(window);
 
 	//Intialize GLAD
@@ -321,19 +291,11 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	// three vertex positions and assocated colours of a triangle
-	vector<vec2> points;
-	vector<vec3> colors;
+        vector<vec2> points;
+        vector<vec3> colors;
+        // Generate the first level of the square
+        generateSquare(level, &points, &colors);
 
-	generateDragonCurve(
-		Line(vec2(-0.5f, 0.f), vec2(0.5f, 0.f)),
-		0,
-		&points,
-		&colors);
-
-	cout << points.size() << endl;
-
-	int lastIterationNum = 0;
 
 	// call function to create and fill buffers with geometry data
 	Geometry geometry;
@@ -344,22 +306,18 @@ int main(int argc, char *argv[])
 		cout << "Failed to load geometry" << endl;
 
 	// run an event-triggered main loop
+        // glfWindowShouldClose will continuously return false
+        // until it has been instructed to close (GL_FALSE)
 	while (!glfwWindowShouldClose(window))
 	{
-		if(dragonCurveIterations != lastIterationNum){
-			generateDragonCurve(
-				Line(vec2(-0.5f, 0.f), vec2(0.5f, 0.f)),
-				dragonCurveIterations,
-				&points,
-				&colors);
-			LoadGeometry(&geometry, points.data(), colors.data(), points.size());
-		}
-
 		// call function to draw our scene
 		RenderScene(&geometry, program);
 
+                // double buffer swapping
 		glfwSwapBuffers(window);
 
+                // Check if any events are triggered and executes
+                // the callback methods
 		glfwPollEvents();
 	}
 
