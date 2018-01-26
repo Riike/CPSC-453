@@ -37,7 +37,7 @@ string LoadSource(const string &filename);
 GLuint CompileShader(GLenum shaderType, const string &source);
 GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 
-int level = 3;
+int level = 1;
 
 // --------------------------------------------------------------------------
 // Functions to set up OpenGL shader programs for rendering
@@ -169,8 +169,9 @@ void RenderScene(Geometry *geometry, GLuint program)
 	// scene geometry, then tell OpenGL to draw our geometry
 	glUseProgram(program);
 	glBindVertexArray(geometry->vertexArray);
-        for (int i = 0; i < geometry->elementCount; i++) {
-            glDrawArrays(GL_LINE_LOOP, i*4, 4);
+        for (int i = 0; i < level; i++) {
+            glDrawArrays(GL_LINE_LOOP, i * 8, 4);
+            glDrawArrays(GL_LINE_LOOP, 4 + 8 * i, 4);
         }
 
 
@@ -195,8 +196,15 @@ void ErrorCallback(int error, const char* description)
 // handles keyboard input events
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    if(action == GLFW_PRESS) {
+	if (key == GLFW_KEY_ESCAPE)
 		glfwSetWindowShouldClose(window, GL_TRUE);
+        if (key == GLFW_KEY_UP)
+            level++;
+        if (key == GLFW_KEY_DOWN)
+            level = std::max(level - 1, 1);
+    }
+
 }
 
 void generateSquare(int level, vector<vec2>* points, vector<vec3>* colors)
@@ -310,6 +318,10 @@ int main(int argc, char *argv[])
         // until it has been instructed to close (GL_FALSE)
 	while (!glfwWindowShouldClose(window))
 	{
+
+                generateSquare(level, &points, &colors);
+                LoadGeometry(&geometry, points.data(), colors.data(), points.size());
+
 		// call function to draw our scene
 		RenderScene(&geometry, program);
 
