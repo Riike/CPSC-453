@@ -220,17 +220,14 @@ void generateSquare(int level, vector<vec2>* points, vector<vec3>* colors)
         diamonds.push_back(Diamond(0.5f/pow(2, i)));
     }
 
-    vec3 color(1, 1, 1);
-
     for (int i = 0; i < squares.size(); i++) {
         points->push_back(squares[i].a);
         points->push_back(squares[i].b);
         points->push_back(squares[i].c);
         points->push_back(squares[i].d);
 
-        for (int j = 0; j < 4; j++) {
-            colors->push_back(color);
-        }
+        for (int j = 0; j < 4; j++)
+            colors->push_back(vec3(0.48f, 0.58f, 0.42f) * (float)pow(1.5, i));
     }
 
     for (int i = 0; i < diamonds.size(); i++) {
@@ -239,10 +236,8 @@ void generateSquare(int level, vector<vec2>* points, vector<vec3>* colors)
         points->push_back(diamonds[i].c);
         points->push_back(diamonds[i].d);
 
-
-        for (int j = 0; j < 4; j++) {
-            colors->push_back(color);
-        }
+        for (int j = 0; j < 4; j++)
+            colors->push_back(vec3(0.38f, 0.54f, 0.7f) * (float)pow(1.5, i));
     }
 }
 
