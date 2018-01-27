@@ -57,8 +57,8 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 // TUTORIAL STUFF
 
 
-//vec2 and vec3 are part of the glm math library. 
-//Include in your own project by putting the glm directory in your project, 
+//vec2 and vec3 are part of the glm math library.
+//Include in your own project by putting the glm directory in your project,
 //and including glm/glm.hpp as I have at the top of the file.
 //"using namespace glm;" will allow you to avoid writing everyting as glm::vec2
 vector<vec2> points;
@@ -102,9 +102,9 @@ void deleteIDs()
 	{
 		glDeleteProgram(shader[i]);
 	}
-	
+
 	glDeleteVertexArrays(VAO::COUNT, vao);
-	glDeleteBuffers(VBO::COUNT, vbo);	
+	glDeleteBuffers(VBO::COUNT, vbo);
 }
 
 
@@ -123,7 +123,7 @@ bool initVAO()
 		sizeof(vec2),	//Stride
 		(void*)0			//Offset
 		);
-	
+
 	glEnableVertexAttribArray(1);		//Tell opengl you're using layout attribute 1
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[VBO::COLOR]);
 	glVertexAttribPointer(
@@ -133,7 +133,7 @@ bool initVAO()
 		GL_FALSE,
 		sizeof(vec3),
 		(void*)0
-		);	
+		);
 
 	return !CheckGLErrors();		//Check for errors in initialize
 }
@@ -159,18 +159,18 @@ bool loadBuffer(const vector<vec2>& points, const vector<vec3>& colors)
 		GL_STATIC_DRAW
 		);
 
-	return !CheckGLErrors();	
+	return !CheckGLErrors();
 }
 
 //Compile and link shaders, storing the program ID in shader array
 bool initShader()
-{	
+{
 	string vertexSource = LoadSource("vertex.glsl");		//Put vertex file text into string
 	string fragmentSource = LoadSource("fragment.glsl");		//Put fragment file text into string
 
 	GLuint vertexID = CompileShader(GL_VERTEX_SHADER, vertexSource);
 	GLuint fragmentID = CompileShader(GL_FRAGMENT_SHADER, fragmentSource);
-	
+
 	shader[SHADER::LINE] = LinkProgram(vertexID, fragmentID);	//Link and store program ID in shader array
 
 	return !CheckGLErrors();
@@ -193,8 +193,8 @@ void generateCircle(float radius, int numPoints)
 
 	vec3 startColor(1.f, 0.f, 0.f);		//Initial color
 	vec3 endColor(0.f, 0.f, 1.f);			//Final color
-	
-//	points.push_back(vec2(0, 0));		//Uncomment for spiral		
+
+//	points.push_back(vec2(0, 0));		//Uncomment for spiral
 //	colors.push_back(startColor);
 
 	//Fill vectors with points/colors
@@ -220,7 +220,7 @@ void initGL()
 	initVAO();			//Describe setup of Vertex Array Objects and Vertex Buffer Objects
 
 	//Call these two (or equivalents) every time you change geometry
-	generateCircle(1.f, 200);		//Create geometry - CHANGE THIS FOR DIFFERENT SCENES
+	generateCircle(1.f, 50);		//Create geometry - CHANGE THIS FOR DIFFERENT SCENES
 	loadBuffer(points, colors);	//Load geometry into buffers
 }
 
@@ -235,7 +235,7 @@ void render()
 	glBindVertexArray(vao[VAO::LINES]);		//Use the LINES vertex array
 
 	glDrawArrays(
-			GL_LINE_STRIP,		//What shape we're drawing	- GL_TRIANGLES, GL_LINES, GL_POINTS, GL_QUADS, GL_TRIANGLE_STRIP
+			GL_POINTS,		//What shape we're drawing	- GL_TRIANGLES, GL_LINES, GL_POINTS, GL_QUADS, GL_TRIANGLE_STRIP
 			0,						//Starting index
 			points.size()		//How many vertices
 			);
@@ -248,7 +248,7 @@ void render()
 // PROGRAM ENTRY POINT
 
 int main(int argc, char *argv[])
-{   
+{
     // initialize the GLFW windowing system
     if (!glfwInit()) {
         cout << "ERROR: GLFW failed to initilize, TERMINATING" << endl;

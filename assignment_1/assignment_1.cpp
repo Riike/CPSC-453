@@ -23,6 +23,7 @@
 
 #include "square.h"
 #include "diamond.h"
+#include "triangle.h"
 #include <vector>
 
 using namespace std;
@@ -37,7 +38,10 @@ string LoadSource(const string &filename);
 GLuint CompileShader(GLenum shaderType, const string &source);
 GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 
+int scene = 1;
 int level = 1;
+int revolutions = 2;
+int iterations = 1;
 
 // --------------------------------------------------------------------------
 // Functions to set up OpenGL shader programs for rendering
@@ -169,10 +173,23 @@ void RenderScene(Geometry *geometry, GLuint program)
 	// scene geometry, then tell OpenGL to draw our geometry
 	glUseProgram(program);
 	glBindVertexArray(geometry->vertexArray);
-        for (int i = 0; i < level; i++) {
-            glDrawArrays(GL_LINE_LOOP, i * 8, 4);
-            glDrawArrays(GL_LINE_LOOP, 4 + 8 * i, 4);
+
+        if (scene == 1) {
+            for (int i = 0; i < level; i++) {
+                glDrawArrays(GL_LINE_LOOP, i * 8, 4);
+                glDrawArrays(GL_LINE_LOOP, 4 + 8 * i, 4);
+            }
         }
+
+        if (scene == 2) {
+            glDrawArrays(GL_LINE_STRIP, 0, geometry->elementCount);
+        }
+
+        if (scene == 3) {
+            for (int i = 0; i < iterations; i++)
+                glDrawArrays(GL_TRIANGLES, i * 3, 9 * pow(3, i));
+        }
+
 
 
 	// reset state to default (no shader or geometry bound)
@@ -199,16 +216,39 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if(action == GLFW_PRESS) {
 	if (key == GLFW_KEY_ESCAPE)
 		glfwSetWindowShouldClose(window, GL_TRUE);
-        if (key == GLFW_KEY_UP)
-            level++;
-        if (key == GLFW_KEY_DOWN)
-            level = std::max(level - 1, 1);
-    }
 
+        if (key == GLFW_KEY_UP)
+            switch(scene) {
+                case 1: level++; break;
+                case 2: revolutions++; break;
+                case 3: iterations++; break;
+            }
+
+        if (key == GLFW_KEY_DOWN) {
+            switch(scene) {
+                case 1: level = std::max(level - 1, 1); break;
+                case 2: revolutions = std::max(revolutions - 1, 2); break;
+                case 3: iterations = std::max(iterations - 1, 1); break;
+            }
+        }
+
+        if (key == GLFW_KEY_RIGHT) {
+            if (scene == 3)
+                scene = 1;
+            else
+                scene++;
+        }
+
+        if (key == GLFW_KEY_LEFT) {
+            if (scene == 1)
+                scene = 3;
+            else
+                scene--;
+        }
+    }
 }
 
-void generateSquare(int level, vector<vec2>* points, vector<vec3>* colors)
-{
+void generateSquare(int level, vector<vec2>* points, vector<vec3>* colors) {
     points->clear();
     colors->clear();
 
@@ -241,6 +281,71 @@ void generateSquare(int level, vector<vec2>* points, vector<vec3>* colors)
     }
 }
 
+void generateSpiral(int revolutions, int numPoints, vector<vec2>* points, vector<vec3>* colors) {
+
+    points->clear();
+    colors->clear();
+
+    const float MAX_ROTATION = revolutions * 2 * 3.14159f;
+
+    float u = 0.0f;
+    float ustep = 1.0f/((float)numPoints - 1);
+
+    vec3 startColor(1.f, 0.f, 0.f);		//Initial color
+    vec3 endColor(0.f, 0.f, 1.f);			//Final color
+
+    for (int i = 0; i < numPoints; i++) {
+        u += ustep;
+        points->push_back(vec2(
+                u * cos(MAX_ROTATION * u),
+                -u * sin(MAX_ROTATION * u))
+                );
+        colors->push_back(startColor * (1 - u) + endColor * u);
+    }
+}
+
+void generateTriangles(Triangle initTriangle, int iterations, vector<vec2>* points, vector<vec3>* colors) {
+    points->clear();
+    colors->clear();
+
+    vector<Triangle> triangles = {initTriangle};
+
+    vec3 red  = vec3(1, 0, 0);
+    vec3 blue = vec3(0, 0, 1);
+    vec3 green = vec3(0, 1, 0);
+
+    for(int i = 0; i < iterations; i++) {
+        vector<Triangle> newTriangles;
+
+        for (int j = 0; j < triangles.size(); j++) {
+            Triangle a, b, c;
+            triangleSplit(triangles[j], &a, &b, &c);
+
+            newTriangles.push_back(a);
+            newTriangles.push_back(b);
+            newTriangles.push_back(c);
+        }
+
+        triangles.swap(newTriangles);
+    }
+
+    for (int i = 0; i < triangles.size(); i++) {
+        points->push_back(triangles[i].a);
+        points->push_back(triangles[i].b);
+        points->push_back(triangles[i].c);
+    }
+
+    for (int i = 0; i < pow(3, iterations); i++)
+        colors->push_back(red + 0.01f * i);
+
+    for (int i = 0; i < pow(3, iterations); i++)
+        colors->push_back(green + 0.01f * i);
+
+    for (int i = 0; i < pow(3, iterations); i++)
+        colors->push_back(blue + 0.01f * i);
+
+
+}
 
 // ==========================================================================
 // PROGRAM ENTRY POINT
@@ -296,9 +401,6 @@ int main(int argc, char *argv[])
 
         vector<vec2> points;
         vector<vec3> colors;
-        // Generate the first level of the square
-        generateSquare(level, &points, &colors);
-
 
 	// call function to create and fill buffers with geometry data
 	Geometry geometry;
@@ -314,7 +416,19 @@ int main(int argc, char *argv[])
 	while (!glfwWindowShouldClose(window))
 	{
 
+            if (scene == 1) {
                 generateSquare(level, &points, &colors);
+            } else if (scene == 2) {
+                generateSpiral(revolutions, 500, &points, &colors);
+            } else {
+                 generateTriangles(Triangle(vec2(-0.5f, -sqrtf(3)/4),
+                                            vec2(0.5f, -sqrtf(3)/4),
+                                            vec2(0.0f, sqrtf(3)/4)),
+                                    iterations,
+                                    &points,
+                                    &colors);
+            }
+
                 LoadGeometry(&geometry, points.data(), colors.data(), points.size());
 
 		// call function to draw our scene
