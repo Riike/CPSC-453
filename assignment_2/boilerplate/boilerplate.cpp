@@ -187,7 +187,7 @@ void RenderScene(Geometry *geometry, GLuint program)
 	// scene geometry, then tell OpenGL to draw our geometry
 	glUseProgram(program);
 	glBindVertexArray(geometry->vertexArray);
-	glDrawArrays(GL_TRIANGLES, 0, geometry->elementCount);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 9);
 
 	// reset state to default (no shader or geometry bound)
 	glBindVertexArray(0);
@@ -261,17 +261,20 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+        // TODO change to vectors instead of hardcoding
 	// three vertex positions and assocated colours of a triangle
 	vec2 vertices[] = {
-		vec2( -0.6f, -0.4f ),
-		vec2( 0.0f,  0.6f ),
-		vec2( 0.6f, -0.4f )
+		vec2(0.5f, 0.5f),
+		vec2(0.5f,  -0.5f),
+		vec2(-0.5f, -0.5f),
+		vec2(-0.5f, 0.5f)
 	};
 
 	vec3 colours[] = {
-		vec3( 1.0f, 0.0f, 0.0f ),
-		vec3( 0.0f, 1.0f, 0.0f ),
-		vec3( 0.0f, 0.0f, 1.0f )
+		vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.0f, 1.0f, 0.0f),
+		vec3(0.0f, 0.0f, 1.0f),
+		vec3(1.0f, 1.0f, 0.0f)
 	};
 
         vec2 texCoords[] = {
@@ -280,6 +283,8 @@ int main(int argc, char *argv[])
             vec2(0.0f, 0.0f),
             vec2(0.0f, 1.0f)
         };
+
+        // TODO Define EBO
 
 
         MyTexture texture;
@@ -290,7 +295,7 @@ int main(int argc, char *argv[])
 	if (!InitializeVAO(&geometry))
 		cout << "Program failed to intialize geometry!" << endl;
 
-	if(!LoadGeometry(&geometry, vertices, colours, texCoords, 3))
+	if(!LoadGeometry(&geometry, vertices, colours, texCoords, 4))
 		cout << "Failed to load geometry" << endl;
 
 	// float timeElapsed = 0.f;
