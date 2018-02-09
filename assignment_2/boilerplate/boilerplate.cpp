@@ -26,6 +26,7 @@
 #include <GLFW/glfw3.h>
 
 #include "texture.h"
+#include <vector>
 
 using namespace std;
 using namespace glm;
@@ -38,6 +39,9 @@ bool CheckGLErrors();
 string LoadSource(const string &filename);
 GLuint CompileShader(GLenum shaderType, const string &source);
 GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
+
+int img = 1;
+bool newImg = false;
 
 // --------------------------------------------------------------------------
 // Functions to set up OpenGL shader programs for rendering
@@ -141,6 +145,45 @@ bool InitializeVAO(Geometry *geometry){
 	return !CheckGLErrors();
 }
 
+void generateShape(vector<vec2>* points, vector<vec2>* texCoords, float width, float height) {
+
+        points->clear();
+        texCoords->clear();
+
+        if (height >= width) {
+            //Triangle 1
+            points->push_back(vec2(-width/height, 1.0f));
+            points->push_back(vec2(width/height, 1.0f));
+            points->push_back(vec2(-width/height, -1.0f));
+
+            //Triangle 2
+            points->push_back(vec2(width/height, -1.0f));
+            points->push_back(vec2(width/height, 1.0f));
+            points->push_back(vec2(-width/height, -1.0f));
+        } else {
+            //Triangle 1
+            points->push_back(vec2(-1.0f, height/width));
+            points->push_back(vec2(1.0f, height/width));
+            points->push_back(vec2(-1.0f, -height/width));
+
+            //Triangle 2
+            points->push_back(vec2(1.0f, -height/width));
+            points->push_back(vec2(1.0f, height/width));
+            points->push_back(vec2(-1.0f, -height/width));
+        }
+
+        texCoords->push_back(vec2(0.0f,1.0f));
+        texCoords->push_back(vec2(1.0f,1.0f));
+        texCoords->push_back(vec2(0.0f,0.0f));
+
+        texCoords->push_back(vec2(1.0f,0.0f));
+        texCoords->push_back(vec2(1.0f,1.0f));
+        texCoords->push_back(vec2(0.0f,0.0f));
+
+}
+
+
+
 // create buffers and fill with geometry data, returning true if successful
 bool LoadGeometry(Geometry *geometry, vec2 *vertices, vec3 *colours, vec2 *texCoords, int elementCount)
 {
@@ -187,7 +230,8 @@ void RenderScene(Geometry *geometry, GLuint program)
 	// scene geometry, then tell OpenGL to draw our geometry
 	glUseProgram(program);
 	glBindVertexArray(geometry->vertexArray);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 9);
+        // printf("%d\n", geometry->elementCount);
+        glDrawArrays(GL_TRIANGLES, 0, geometry->elementCount);
 
 	// reset state to default (no shader or geometry bound)
 	glBindVertexArray(0);
@@ -210,8 +254,26 @@ void ErrorCallback(int error, const char* description)
 // handles keyboard input events
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    if(action == GLFW_PRESS) {
+	if (key == GLFW_KEY_ESCAPE)
 		glfwSetWindowShouldClose(window, GL_TRUE);
+
+        if (key == GLFW_KEY_RIGHT) {
+            if (img == 5)
+                img = 1;
+            else
+                img++;
+            newImg = true;
+        }
+
+        if (key == GLFW_KEY_LEFT) {
+            if (img == 1)
+                img = 5;
+            else
+                img--;
+        }
+            newImg = true;
+    }
 }
 
 // ==========================================================================
@@ -261,41 +323,21 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-        // TODO change to vectors instead of hardcoding
-	// three vertex positions and assocated colours of a triangle
-	vec2 vertices[] = {
-		vec2(0.5f, 0.5f),
-		vec2(0.5f,  -0.5f),
-		vec2(-0.5f, -0.5f),
-		vec2(-0.5f, 0.5f)
-	};
-
-	vec3 colours[] = {
-		vec3(1.0f, 0.0f, 0.0f),
-		vec3(0.0f, 1.0f, 0.0f),
-		vec3(0.0f, 0.0f, 1.0f),
-		vec3(1.0f, 1.0f, 0.0f)
-	};
-
-        vec2 texCoords[] = {
-            vec2(1.0f, 1.0f),
-            vec2(1.0f, 0.0f),
-            vec2(0.0f, 0.0f),
-            vec2(0.0f, 1.0f)
-        };
-
-        // TODO Define EBO
-
+        vector<vec2> points;
+        vector<vec3> colours;
+        vector<vec2> texCoords;
 
         MyTexture texture;
-        InitializeTexture(&texture, "images/image1-mandrill.png", GL_TEXTURE_2D);
+        string fileName = "images/image1-mandrill.png";
+
+        InitializeTexture(&texture, fileName.c_str(), GL_TEXTURE_2D);
 
 	// call function to create and fill buffers with geometry data
 	Geometry geometry;
 	if (!InitializeVAO(&geometry))
 		cout << "Program failed to intialize geometry!" << endl;
 
-	if(!LoadGeometry(&geometry, vertices, colours, texCoords, 4))
+	if(!LoadGeometry(&geometry, points.data(), colours.data(), texCoords.data(), points.size()))
 		cout << "Failed to load geometry" << endl;
 
 	// float timeElapsed = 0.f;
@@ -306,6 +348,23 @@ int main(int argc, char *argv[])
 	{
 		// glUseProgram(program);
 		// glUniform1f(timeLocation, timeElapsed);
+
+                switch(img) {
+                    case 1: fileName = "images/image1-mandrill.png"; break;
+                    case 2: fileName = "images/image2-uclogo.png"; break;
+                    case 3: fileName = "images/image3-aerial.jpg"; break;
+                    case 4: fileName = "images/image4-thirsk.jpg"; break;
+                    case 5: fileName = "images/image5-pattern.png"; break;
+                }
+
+                if (newImg) {
+                    InitializeTexture(&texture, fileName.c_str(), GL_TEXTURE_2D);
+                    newImg = false;
+                }
+
+                generateShape(&points, &texCoords, texture.width, texture.height);
+                LoadGeometry(&geometry, points.data(), colours.data(), texCoords.data(), points.size());
+
                 glBindTexture(GL_TEXTURE_2D, texture.textureID);
 
 		// call function to draw our scene
