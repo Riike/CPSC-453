@@ -45,9 +45,12 @@ bool newImg = false;
 
 bool mouseClicked;
 double initPosX, initPosY;
-double offsetX, offsetY = 0.0;
-double prevPosX, prevPosY = 0.0;
-double xDist, yDist = 0.0;
+double offsetX = 0.0, offsetY = 0.0;
+double prevPosX = 0.0, prevPosY = 0.0;
+double xDist = 0.0, yDist = 0.0;
+double magnification = 1.0;
+float theta = 0.0f;
+bool keyA = false, keyD = false;
 
 // --------------------------------------------------------------------------
 // Functions to set up OpenGL shader programs for rendering
@@ -150,6 +153,15 @@ bool InitializeVAO(Geometry *geometry) {
 
 	return !CheckGLErrors();
 }
+
+void updateRotation() {
+    if (keyA)
+        theta += 5.0f;
+
+    if (keyD)
+        theta -= 5.0f;
+}
+
 
 void updateLocation(GLFWwindow* window, int winWidth, int winHeight) {
 
@@ -277,7 +289,7 @@ void ErrorCallback(int error, const char* description)
 // handles keyboard input events
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if(action == GLFW_PRESS) {
+    if (action == GLFW_PRESS) {
 	if (key == GLFW_KEY_ESCAPE)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
@@ -294,13 +306,26 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
                 img = 5;
             else
                 img--;
-        }
             newImg = true;
+        }
+
+        if (key == GLFW_KEY_A)
+            keyA = true;
+
+        if (key == GLFW_KEY_D)
+            keyD = true;
+    }
+
+    if (action == GLFW_RELEASE) {
+        if (key == GLFW_KEY_A)
+            keyA = false;
+
+        if (key == GLFW_KEY_D)
+            keyD = false;
     }
 }
 
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-{
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         glfwGetCursorPos(window, &initPosX, &initPosY);
         printf("I am clicked on %f, %f\n", initPosX, initPosY);
@@ -310,6 +335,15 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
         printf("I am released\n");
         mouseClicked = false;
+    }
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+
+    magnification += yoffset * 0.05;
+
+    if (magnification < 0.05) {
+        magnification = 0.05;
     }
 }
 
@@ -343,6 +377,8 @@ int main(int argc, char *argv[])
 	// set keyboard callback function and make our context current (active)
 	glfwSetKeyCallback(window, KeyCallback);
         glfwSetMouseButtonCallback(window, mouse_button_callback);
+        glfwSetScrollCallback(window, scroll_callback);
+
 	glfwMakeContextCurrent(window);
 
 	//Intialize GLAD
@@ -389,6 +425,10 @@ int main(int argc, char *argv[])
 	{
 
                 glm::mat4 trans;
+                trans = glm::rotate(trans,
+                        glm::radians(theta), glm::vec3(0.0, 0.0, 1.0));
+                trans = glm::scale(trans,
+                        glm::vec3((float)magnification, (float)magnification, 0.0f));
                 trans = glm::translate(trans,
                         glm::vec3((float)offsetX, (float)offsetY, 0.0f));
 
@@ -413,6 +453,7 @@ int main(int argc, char *argv[])
                         colours.data(), texCoords.data(), points.size());
 
                 updateLocation(window, width, height);
+                updateRotation();
 
                 glBindTexture(GL_TEXTURE_2D, texture.textureID);
 
