@@ -52,6 +52,8 @@ double magnification = 1.0;
 float theta = 0.0f;
 bool keyA = false, keyD = false;
 
+int effect = 0;
+
 // --------------------------------------------------------------------------
 // Functions to set up OpenGL shader programs for rendering
 
@@ -176,8 +178,8 @@ void updateLocation(GLFWwindow* window, int winWidth, int winHeight) {
         prevPosY = yDist;
     }
 
-    offsetX = xDist / winWidth;
-    offsetY = -yDist / winHeight;
+    offsetX = xDist / winWidth / 2;
+    offsetY = -yDist / winHeight / 2;
 }
 
 void generateImage(vector<vec2>* points, vector<vec2>* texCoords, float width, float height) {
@@ -314,6 +316,30 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
         if (key == GLFW_KEY_D)
             keyD = true;
+
+        if (key == GLFW_KEY_1)
+            effect = 0;
+
+        if (key == GLFW_KEY_2)
+            effect = 1;
+
+        if (key == GLFW_KEY_3)
+            effect = 2;
+
+        if (key == GLFW_KEY_4)
+            effect = 3;
+
+        if (key == GLFW_KEY_5)
+            effect = 4;
+
+        if (key == GLFW_KEY_6)
+            effect = 5;
+
+        if (key == GLFW_KEY_7)
+            effect = 6;
+
+        if (key == GLFW_KEY_8)
+            effect = 7;
     }
 
     if (action == GLFW_RELEASE) {
@@ -367,7 +393,7 @@ int main(int argc, char *argv[])
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	int width = 512, height = 512;
-	window = glfwCreateWindow(width, height, "CPSC 453 OpenGL Boilerplate", 0, 0);
+	window = glfwCreateWindow(width, height, "CPSC 453 Assignment II", 0, 0);
 	if (!window) {
 		cout << "Program failed to create GLFW window, TERMINATING" << endl;
 		glfwTerminate();
@@ -419,21 +445,25 @@ int main(int argc, char *argv[])
 	// float timeElapsed = 0.f;
 	// GLint timeLocation = glGetUniformLocation(program, "time");
         GLint transformLoc = glGetUniformLocation(program, "transform");
+        GLint effectLoc = glGetUniformLocation(program, "effect");
+        GLint dimensionsLoc = glGetUniformLocation(program, "imgDimensions");
 
 	// run an event-triggered main loop
 	while (!glfwWindowShouldClose(window))
 	{
 
-                glm::mat4 trans;
-                trans = glm::rotate(trans,
-                        glm::radians(theta), glm::vec3(0.0, 0.0, 1.0));
-                trans = glm::scale(trans,
-                        glm::vec3((float)magnification, (float)magnification, 0.0f));
-                trans = glm::translate(trans,
-                        glm::vec3((float)offsetX, (float)offsetY, 0.0f));
+                mat4 trans;
+                trans = rotate(trans,
+                        radians(theta), glm::vec3(0.0, 0.0, 1.0));
+                trans = scale(trans,
+                        vec3((float)magnification, (float)magnification, 0.0f));
+                trans = translate(trans,
+                        vec3((float)offsetX, (float)offsetY, 0.0f));
 
                 glUseProgram(program);
                 glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+                glUniform1i(effectLoc, effect);
+                glUniform2f(dimensionsLoc, (float)texture.width, (float)texture.height);
 
                 switch(img) {
                     case 1: fileName = "images/image1-mandrill.png"; break;
