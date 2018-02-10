@@ -16,19 +16,12 @@ layout(location = 2) in vec2 VertexTexCoord;
 out vec3 Colour;
 out vec2 TexCoord;
 
-/* uniform float time; */
-
-/*
- * vec2 circleOffset(float t){
- *         return vec2(cos(t), sin(t));
- * }
- */
+uniform mat4 transform;
 
 void main()
 {
     // assign vertex position without modification
-    /* gl_Position = vec4(VertexPosition+circleOffset(time), 0.0, 1.0); */
-    gl_Position = vec4(VertexPosition, 0.0, 1.0);
+    gl_Position = transform * vec4(VertexPosition, 0.0, 1.0);
 
     // assign output colour to be interpolated
     Colour = VertexColour;

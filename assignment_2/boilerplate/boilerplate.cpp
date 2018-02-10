@@ -43,6 +43,12 @@ GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 int img = 1;
 bool newImg = false;
 
+bool mouseClicked;
+double initPosX, initPosY;
+double offsetX, offsetY = 0.0;
+double prevPosX, prevPosY = 0.0;
+double xDist, yDist = 0.0;
+
 // --------------------------------------------------------------------------
 // Functions to set up OpenGL shader programs for rendering
 
@@ -85,7 +91,7 @@ struct Geometry
 	{}
 };
 
-bool InitializeVAO(Geometry *geometry){
+bool InitializeVAO(Geometry *geometry) {
 
 	const GLuint VERTEX_INDEX = 0;
 	const GLuint COLOUR_INDEX = 1;
@@ -145,31 +151,50 @@ bool InitializeVAO(Geometry *geometry){
 	return !CheckGLErrors();
 }
 
-void generateShape(vector<vec2>* points, vector<vec2>* texCoords, float width, float height) {
+void updateLocation(GLFWwindow* window, int winWidth, int winHeight) {
+
+    double x, y;
+    glfwGetCursorPos(window, &x, &y);
+
+    if (mouseClicked) {
+        xDist = x - initPosX + prevPosX;
+        yDist = y - initPosY + prevPosY;
+    } else {
+        prevPosX = xDist;
+        prevPosY = yDist;
+    }
+
+    offsetX = xDist / winWidth;
+    offsetY = -yDist / winHeight;
+}
+
+void generateImage(vector<vec2>* points, vector<vec2>* texCoords, float width, float height) {
 
         points->clear();
         texCoords->clear();
 
         if (height >= width) {
+            float normalizedW = width/height;
             //Triangle 1
-            points->push_back(vec2(-width/height, 1.0f));
-            points->push_back(vec2(width/height, 1.0f));
-            points->push_back(vec2(-width/height, -1.0f));
+            points->push_back(vec2(-normalizedW, 1.0f));
+            points->push_back(vec2(normalizedW, 1.0f));
+            points->push_back(vec2(-normalizedW, -1.0f));
 
             //Triangle 2
-            points->push_back(vec2(width/height, -1.0f));
-            points->push_back(vec2(width/height, 1.0f));
-            points->push_back(vec2(-width/height, -1.0f));
+            points->push_back(vec2(normalizedW, -1.0f));
+            points->push_back(vec2(normalizedW, 1.0f));
+            points->push_back(vec2(-normalizedW, -1.0f));
         } else {
+            float normalizedH = height/width;
             //Triangle 1
-            points->push_back(vec2(-1.0f, height/width));
-            points->push_back(vec2(1.0f, height/width));
-            points->push_back(vec2(-1.0f, -height/width));
+            points->push_back(vec2(-1.0f, normalizedH));
+            points->push_back(vec2(1.0f, normalizedH));
+            points->push_back(vec2(-1.0f, -normalizedH));
 
             //Triangle 2
-            points->push_back(vec2(1.0f, -height/width));
-            points->push_back(vec2(1.0f, height/width));
-            points->push_back(vec2(-1.0f, -height/width));
+            points->push_back(vec2(1.0f, -normalizedH));
+            points->push_back(vec2(1.0f, normalizedH));
+            points->push_back(vec2(-1.0f, -normalizedH));
         }
 
         texCoords->push_back(vec2(0.0f,1.0f));
@@ -179,9 +204,7 @@ void generateShape(vector<vec2>* points, vector<vec2>* texCoords, float width, f
         texCoords->push_back(vec2(1.0f,0.0f));
         texCoords->push_back(vec2(1.0f,1.0f));
         texCoords->push_back(vec2(0.0f,0.0f));
-
 }
-
 
 
 // create buffers and fill with geometry data, returning true if successful
@@ -276,6 +299,21 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     }
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        glfwGetCursorPos(window, &initPosX, &initPosY);
+        printf("I am clicked on %f, %f\n", initPosX, initPosY);
+        mouseClicked = true;
+    }
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+        printf("I am released\n");
+        mouseClicked = false;
+    }
+}
+
+
 // ==========================================================================
 // PROGRAM ENTRY POINT
 
@@ -304,6 +342,7 @@ int main(int argc, char *argv[])
 
 	// set keyboard callback function and make our context current (active)
 	glfwSetKeyCallback(window, KeyCallback);
+        glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwMakeContextCurrent(window);
 
 	//Intialize GLAD
@@ -337,17 +376,24 @@ int main(int argc, char *argv[])
 	if (!InitializeVAO(&geometry))
 		cout << "Program failed to intialize geometry!" << endl;
 
-	if(!LoadGeometry(&geometry, points.data(), colours.data(), texCoords.data(), points.size()))
+	if(!LoadGeometry(&geometry, points.data(),
+                    colours.data(), texCoords.data(), points.size()))
 		cout << "Failed to load geometry" << endl;
 
 	// float timeElapsed = 0.f;
 	// GLint timeLocation = glGetUniformLocation(program, "time");
+        GLint transformLoc = glGetUniformLocation(program, "transform");
 
 	// run an event-triggered main loop
 	while (!glfwWindowShouldClose(window))
 	{
-		// glUseProgram(program);
-		// glUniform1f(timeLocation, timeElapsed);
+
+                glm::mat4 trans;
+                trans = glm::translate(trans,
+                        glm::vec3((float)offsetX, (float)offsetY, 0.0f));
+
+                glUseProgram(program);
+                glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
                 switch(img) {
                     case 1: fileName = "images/image1-mandrill.png"; break;
@@ -362,8 +408,11 @@ int main(int argc, char *argv[])
                     newImg = false;
                 }
 
-                generateShape(&points, &texCoords, texture.width, texture.height);
-                LoadGeometry(&geometry, points.data(), colours.data(), texCoords.data(), points.size());
+                generateImage(&points, &texCoords, texture.width, texture.height);
+                LoadGeometry(&geometry, points.data(),
+                        colours.data(), texCoords.data(), points.size());
+
+                updateLocation(window, width, height);
 
                 glBindTexture(GL_TEXTURE_2D, texture.textureID);
 
