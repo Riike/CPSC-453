@@ -164,8 +164,8 @@ void updateLocation(GLFWwindow* window, int winWidth, int winHeight) {
         prevPosY = yDist;
     }
 
-    offsetX = xDist / winWidth / 2;
-    offsetY = -yDist / winHeight / 2;
+    offsetX = xDist / winWidth;
+    offsetY = -yDist / winHeight;
 }
 
 void generateImage(vector<vec2>* points, vector<vec2>* texCoords, float width, float height) {
@@ -277,7 +277,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
         if (key == GLFW_KEY_RIGHT) {
-            if (img == 5)
+            if (img == 6)
                 img = 1;
             else
                 img++;
@@ -286,7 +286,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
         if (key == GLFW_KEY_LEFT) {
             if (img == 1)
-                img = 5;
+                img = 6;
             else
                 img--;
             newImg = true;
@@ -460,6 +460,7 @@ int main(int argc, char *argv[])
                     case 3: fileName = "images/image3-aerial.jpg"; break;
                     case 4: fileName = "images/image4-thirsk.jpg"; break;
                     case 5: fileName = "images/image5-pattern.png"; break;
+                    case 6: fileName = "images/city.jpg"; break;
                 }
 
                 if (newImg) {
@@ -467,12 +468,13 @@ int main(int argc, char *argv[])
                     newImg = false;
                 }
 
+                updateLocation(window, width, height);
+                updateRotation();
+
+
                 generateImage(&points, &texCoords, texture.width, texture.height);
                 LoadGeometry(&geometry, points.data(),
                              texCoords.data(), points.size());
-
-                updateLocation(window, width, height);
-                updateRotation();
 
                 glBindTexture(GL_TEXTURE_2D, texture.textureID);
 
