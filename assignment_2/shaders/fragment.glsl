@@ -11,7 +11,6 @@
 #version 410
 
 // interpolated colour received from vertex stage
-in vec3 Colour;
 in vec2 TexCoord;
 
 // first output is mapped to the framebuffer's colour index by default

@@ -89,27 +89,22 @@ struct Geometry
 	// OpenGL names for array buffer objects, vertex array object
 	GLuint  vertexBuffer;
 	GLuint  textureBuffer;
-	GLuint  colourBuffer;
 	GLuint  vertexArray;
 	GLsizei elementCount;
 
 	// initialize object names to zero (OpenGL reserved value)
-	Geometry() : vertexBuffer(0), colourBuffer(0), vertexArray(0), elementCount(0)
+	Geometry() : vertexBuffer(0), textureBuffer(0), vertexArray(0), elementCount(0)
 	{}
 };
 
 bool InitializeVAO(Geometry *geometry) {
 
 	const GLuint VERTEX_INDEX = 0;
-	const GLuint COLOUR_INDEX = 1;
-	const GLuint TEXTURE_INDEX = 2;
+	const GLuint TEXTURE_INDEX = 1;
 
 	//Generate Vertex Buffer Objects
 	// create an array buffer object for storing our vertices
 	glGenBuffers(1, &geometry->vertexBuffer);
-
-	// create another one for storing our colours
-	glGenBuffers(1, &geometry->colourBuffer);
 
         // array buffer object for storing texture coordinates
         glGenBuffers(1, &geometry->textureBuffer);
@@ -129,17 +124,6 @@ bool InitializeVAO(Geometry *geometry) {
 		sizeof(vec2),		//Stride - can use 0 if tightly packed
 		0);					//Offset to first element
 	glEnableVertexAttribArray(VERTEX_INDEX);
-
-	// associate the colour array with the vertex array object
-	glBindBuffer(GL_ARRAY_BUFFER, geometry->colourBuffer);
-	glVertexAttribPointer(
-		COLOUR_INDEX,		//Attribute index
-		3, 					//# of components
-		GL_FLOAT, 			//Type of component
-		GL_FALSE, 			//Should be normalized?
-		sizeof(vec3), 		//Stride - can use 0 if tightly packed
-		0);					//Offset to first element
-	glEnableVertexAttribArray(COLOUR_INDEX);
 
         glBindBuffer(GL_ARRAY_BUFFER, geometry->textureBuffer);
         glVertexAttribPointer(
@@ -224,17 +208,13 @@ void generateImage(vector<vec2>* points, vector<vec2>* texCoords, float width, f
 
 
 // create buffers and fill with geometry data, returning true if successful
-bool LoadGeometry(Geometry *geometry, vec2 *vertices, vec3 *colours, vec2 *texCoords, int elementCount)
+bool LoadGeometry(Geometry *geometry, vec2 *vertices, vec2 *texCoords, int elementCount)
 {
 	geometry->elementCount = elementCount;
 
 	// create an array buffer object for storing our vertices
 	glBindBuffer(GL_ARRAY_BUFFER, geometry->vertexBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec2)*geometry->elementCount, vertices, GL_STATIC_DRAW);
-
-	// create another one for storing our colours
-	glBindBuffer(GL_ARRAY_BUFFER, geometry->colourBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3)*geometry->elementCount, colours, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, geometry->textureBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec2)*geometry->elementCount, texCoords, GL_STATIC_DRAW);
@@ -253,7 +233,6 @@ void DestroyGeometry(Geometry *geometry)
 	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &geometry->vertexArray);
 	glDeleteBuffers(1, &geometry->vertexBuffer);
-	glDeleteBuffers(1, &geometry->colourBuffer);
 }
 
 // --------------------------------------------------------------------------
@@ -436,7 +415,6 @@ int main(int argc, char *argv[])
 	}
 
         vector<vec2> points;
-        vector<vec3> colours;
         vector<vec2> texCoords;
 
         MyTexture texture;
@@ -450,7 +428,7 @@ int main(int argc, char *argv[])
 		cout << "Program failed to intialize geometry!" << endl;
 
 	if(!LoadGeometry(&geometry, points.data(),
-                    colours.data(), texCoords.data(), points.size()))
+                        texCoords.data(), points.size()))
 		cout << "Failed to load geometry" << endl;
 
 	// float timeElapsed = 0.f;
@@ -491,7 +469,7 @@ int main(int argc, char *argv[])
 
                 generateImage(&points, &texCoords, texture.width, texture.height);
                 LoadGeometry(&geometry, points.data(),
-                        colours.data(), texCoords.data(), points.size());
+                             texCoords.data(), points.size());
 
                 updateLocation(window, width, height);
                 updateRotation();
