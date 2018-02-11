@@ -11,6 +11,8 @@
 //			Jeremy Hart, University of Calgary
 //			John Hall, University of Calgary
 // Date:    December 2015
+// Modified to use as Assignment II
+// Author: Henry Tran
 // ==========================================================================
 
 #include <iostream>
@@ -317,29 +319,38 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         if (key == GLFW_KEY_D)
             keyD = true;
 
-        if (key == GLFW_KEY_1)
+        if (key == GLFW_KEY_ENTER)
             effect = 0;
 
-        if (key == GLFW_KEY_2)
+        if (key == GLFW_KEY_1)
             effect = 1;
 
-        if (key == GLFW_KEY_3)
+        if (key == GLFW_KEY_2)
             effect = 2;
 
-        if (key == GLFW_KEY_4)
+        if (key == GLFW_KEY_3)
             effect = 3;
 
-        if (key == GLFW_KEY_5)
+        if (key == GLFW_KEY_4)
             effect = 4;
 
-        if (key == GLFW_KEY_6)
+        if (key == GLFW_KEY_5)
             effect = 5;
 
-        if (key == GLFW_KEY_7)
+        if (key == GLFW_KEY_6)
             effect = 6;
 
-        if (key == GLFW_KEY_8)
+        if (key == GLFW_KEY_7)
             effect = 7;
+
+        if (key == GLFW_KEY_8)
+            effect = 8;
+
+        if (key == GLFW_KEY_9)
+            effect = 9;
+
+        if (key == GLFW_KEY_0)
+            effect = 10;
     }
 
     if (action == GLFW_RELEASE) {

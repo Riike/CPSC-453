@@ -21,14 +21,14 @@ uniform sampler2D image;
 uniform int effect;
 uniform vec2 imgDimensions;
 
-const vec3 lum1 = vec3(0.333, 0.333, 0.333);
-const vec3 lum2 = vec3(0.299, 0.587, 0.114);
-const vec3 lum3 = vec3(0.213, 0.715, 0.072);
-const vec3 sepia = vec3(0.44, 0.26, 0.08);
-
 void main(void)
 {
     // Colour and texture variables
+    vec3 lum1 = vec3(0.333, 0.333, 0.333);
+    vec3 lum2 = vec3(0.299, 0.587, 0.114);
+    vec3 lum3 = vec3(0.213, 0.715, 0.072);
+    vec3 sepia = vec3(0.44, 0.26, 0.08);
+
     vec4 origColour = texture(image, TexCoord);
     float greyscale1 = dot(lum1, origColour.rgb);
     float greyscale2 = dot(lum2, origColour.rgb);
@@ -40,6 +40,9 @@ void main(void)
     float h = 1.0 / imgDimensions.y;
 
     vec2 kernel3[9];
+    vec2 kernel5[25];
+    vec2 kernel7[49];
+
     vec4 appliedFilter = vec4(0.0);
 
     float verticalSobel[9] = float[9](1.0f, 0.0f, -1.0f,
@@ -54,10 +57,37 @@ void main(void)
                                     -1.0f, 5.0f, -1.0f,
                                     0.0f, -1.0f, 0.0f);
 
+    float gaussian3[3] = float[3](0.2, 0.6, 0.2);
+    float gaussian5[5] = float[5](0.06, 0.24, 0.4, 0.24, 0.06);
+    float gaussian7[7] = float[7](0.03, 0.11, 0.22, 0.28, 0.22, 0.11, 0.03);
+
+    float gaussMat3[9];
+    float gaussMat5[25];
+    float gaussMat7[49];
+
     int k = 0;
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             kernel3[k] = vec2(j * w - w, h - i * h);
+            gaussMat3[k] = gaussian3[i] * gaussian3[j];
+            k++;
+        }
+    }
+
+    k = 0;
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            kernel5[k] = vec2(j * w - 2 * w, 2 * h - i * h);
+            gaussMat5[k] = gaussian5[i] * gaussian5[j];
+            k++;
+        }
+    }
+
+    k = 0;
+    for (int i = 0; i < 7; i++) {
+        for (int j = 0; j < 7; j++) {
+            kernel7[k] = vec2(j * w - 3 * w, 3 * h - i * h);
+            gaussMat7[k] = gaussian7[i] * gaussian7[j];
             k++;
         }
     }
@@ -91,6 +121,24 @@ void main(void)
         case 7:
             for (int i = 0; i < 9; i++) {
                 appliedFilter += texture(image, TexCoord + kernel3[i]) * unsharpMask[i];
+            }
+            FragmentColour = appliedFilter;
+            break;
+        case 8:
+            for (int i = 0; i < 9; i++) {
+                appliedFilter += texture(image, TexCoord + kernel3[i]) * gaussMat3[i];
+            }
+            FragmentColour = appliedFilter;
+            break;
+        case 9:
+            for (int i = 0; i < 25; i++) {
+                appliedFilter += texture(image, TexCoord + kernel5[i]) * gaussMat5[i];
+            }
+            FragmentColour = appliedFilter;
+            break;
+        case 10:
+            for (int i = 0; i < 49; i++) {
+                appliedFilter += texture(image, TexCoord + kernel7[i]) * gaussMat7[i];
             }
             FragmentColour = appliedFilter;
             break;
