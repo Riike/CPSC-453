@@ -1,6 +1,5 @@
 // ==========================================================================
-// Barebones OpenGL Core Profile Boilerplate
-//    using the GLFW windowing system (http://www.glfw.org)
+// Barebones OpenGL Core Profile Boilerplate //    using the GLFW windowing system (http://www.glfw.org)
 //
 // Loosely based on
 //  - Chris Wellons' example (https://github.com/skeeto/opengl-demo) and
@@ -344,12 +343,10 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         glfwGetCursorPos(window, &initPosX, &initPosY);
-        printf("I am clicked on %f, %f\n", initPosX, initPosY);
         mouseClicked = true;
     }
 
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-        printf("I am released\n");
         mouseClicked = false;
     }
 }
@@ -442,12 +439,12 @@ int main(int argc, char *argv[])
 	{
 
                 mat4 trans;
-                trans = rotate(trans,
-                        radians(theta), glm::vec3(0.0, 0.0, 1.0));
                 trans = scale(trans,
                         vec3((float)magnification, (float)magnification, 0.0f));
                 trans = translate(trans,
                         vec3((float)offsetX, (float)offsetY, 0.0f));
+                trans = rotate(trans,
+                        radians(theta), glm::vec3(0.0, 0.0, 1.0));
 
                 glUseProgram(program);
                 glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
@@ -481,7 +478,6 @@ int main(int argc, char *argv[])
 		// call function to draw our scene
 		RenderScene(&geometry, program);
 
-		// timeElapsed += 0.01f;
 
 		glfwSwapBuffers(window);
 
