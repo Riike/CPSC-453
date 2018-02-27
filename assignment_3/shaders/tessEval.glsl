@@ -16,31 +16,34 @@ in vec3 teColour[];
 //Will be interpolated as if sent from vertex shader
 out vec3 Colour;
 
+uniform int degree;
+
 #define PI 3.14159265359
 
 void main()
 {
 	//gl_TessCoord.x will parameterize the segments of the line from 0 to 1
 	//gl_TessCoord.y will parameterize the number of lines from 0 to 1
-	float u = gl_TessCoord.x;
+	float b0 = gl_TessCoord.x;
+        float b1 = 1.0f - b0;
 
 	vec3 startColour = teColour[0];
 	vec3 endColour = teColour[1];
+        vec2 position;
 
 	vec2 p0 = gl_in[0].gl_Position.xy;
 	vec2 p1 = gl_in[1].gl_Position.xy;
+        vec2 p2 = gl_in[2].gl_Position.xy;
+        vec2 p3 = gl_in[3].gl_Position.xy;
 
-	//Forming basis from two points in line
-	vec2 bx = p1-p0;
-	//And line rotated 90 degrees
-	vec2 by = vec2(bx.y, -bx.x);
+	//Equations for bezier bernstein form
+        if (degree == 3)
+            position = pow(b1, 2) * p0 + 2 * b0 * b1 * p1 + pow(b0, 2) * p2;
+        else
+            position = pow(b1, 3) * p0 + 3 * b0 * pow(b1, 2) * p1 +
+                       3 * pow(b0, 2) * b1 * p2 + pow(b0, 3) * p3;
 
-	float cycles = 2.0;
-	//Equation for spiral from first assignment
-	vec2 position = u*cos(u*cycles*2.0*PI)*bx + u*sin(u*cycles*2.0*PI)*by + p0;
+        gl_Position = vec4(position, 0, 1);
 
-	gl_Position = vec4(position, 0, 1);
-
-	Colour = (1-u)*startColour + u*endColour;
-
+        Colour = vec3(1, 1, 1);
 }

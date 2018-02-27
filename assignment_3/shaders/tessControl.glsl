@@ -9,7 +9,7 @@
 
 //This variable must match the patch size set in c++ program with
 //glPatchParameteri(GL_PATCH_VERTICES_VERTICES, n)
-layout(vertices=2) out;
+layout(vertices=4) out;
 
 //Number of elements equal to patch size
 in vec3 tcColour[];	//From vertex shader
