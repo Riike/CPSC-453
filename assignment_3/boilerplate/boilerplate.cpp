@@ -29,6 +29,7 @@
 #include <GLFW/glfw3.h>
 
 #include "texture.h"
+#include "GlyphExtractor.h"
 
 using namespace std;
 using namespace glm;
@@ -231,17 +232,35 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
         if (key == GLFW_KEY_UP) {
-            if (degree == 3)
-               degree++;
-            else
-                degree = 3;
+            if (scene == 1) {
+                if (degree == 3)
+                   degree++;
+                else
+                    degree = 3;
+            }
         }
 
         if (key == GLFW_KEY_DOWN) {
-            if (degree == 4)
-               degree--;
+            if (scene == 1) {
+                if (degree == 4)
+                   degree--;
+                else
+                    degree = 4;
+            }
+        }
+
+        if (key == GLFW_KEY_RIGHT) {
+            if (scene == 3)
+                scene = 1;
             else
-                degree = 4;
+                scene++;
+        }
+
+        if (key == GLFW_KEY_LEFT) {
+            if (scene == 1)
+                scene = 3;
+            else
+                scene--;
         }
     }
 }
@@ -313,6 +332,68 @@ void generateCubics(vector<vec2>* points, vector<vec3>* colours) {
     }
 }
 
+// https://stackoverflow.com/questions/20446201
+bool has_suffix(const string &str, const string &suffix) {
+    return str.size() >= suffix.size() &&
+           str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+float findMidpoint(float a, float b) {
+    return (a + b) / 2.0f;
+}
+
+void generateName(vector<vec2>* points, vector<vec3>* colours, string fontFile) {
+    points->clear();
+    colours->clear();
+
+    if (has_suffix(fontFile, ".otf"))
+        degree = 4;
+    else if (has_suffix(fontFile, ".ttf"))
+        degree = 3;
+
+    GlyphExtractor ge;
+    if (!ge.LoadFontFile(fontFile))
+        return;
+
+    MyGlyph H = ge.ExtractGlyph('H');
+    MyGlyph E = ge.ExtractGlyph('E');
+    MyGlyph N = ge.ExtractGlyph('N');
+    MyGlyph R = ge.ExtractGlyph('R');
+    MyGlyph Y = ge.ExtractGlyph('Y');
+
+    float xCoord;
+    float yCoord;
+
+    for (size_t i = 0; i < H.contours.size(); i++) {
+        for (size_t j = 0; j < H.contours.at(i).size(); j++) {
+            if (H.contours.at(i).at(j).degree == 1) {
+                xCoord = H.contours.at(i).at(j).x[0];
+                yCoord = H.contours.at(i).at(j).y[0];
+                points->push_back(vec2(xCoord, yCoord));
+
+                xCoord = findMidpoint(xCoord, H.contours.at(i).at(j).x[1]);
+                yCoord = findMidpoint(yCoord, H.contours.at(i).at(j).y[1]);
+                points->push_back(vec2(xCoord, yCoord));
+                points->push_back(vec2(xCoord, yCoord));
+
+                xCoord = H.contours.at(i).at(j).x[1];
+                yCoord = H.contours.at(i).at(j).y[1];
+                points->push_back(vec2(xCoord, yCoord));
+
+            } else {
+                for (int k = 0; k < 4; k++) {
+                    xCoord = H.contours.at(i).at(j).x[k];
+                    yCoord = H.contours.at(i).at(j).y[k];
+                    points->push_back(vec2(xCoord, yCoord));
+                }
+            }
+
+            for (int k = 0; k < 4; k++)
+                colours->push_back(vec3(1.0f, 1.0f, 1.0f));
+        }
+    }
+}
+
 // ==========================================================================
 // PROGRAM ENTRY POINT
 
@@ -358,20 +439,15 @@ int main(int argc, char *argv[])
         GLuint program1;
         GLuint program2;
 
+        vector<vec2> points;
+        vector<vec3> colours;
+
         InitializeShaders(&program1, &program2);
 
-	if (program1 == 0) {
+	if (program1 == 0 || program2 == 0) {
 		cout << "Program could not initialize shaders, TERMINATING" << endl;
 		return -1;
 	}
-
-        if (program2 == 0) {
-                cout << "Program could not initialize shaders, TERMINATING" << endl;
-                return -1;
-        }
-
-        vector<vec2> points;
-        vector<vec3> colours;
 
 	// call function to create and fill buffers with geometry data
 	Geometry geometry;
@@ -385,10 +461,14 @@ int main(int argc, char *argv[])
 	while (!glfwWindowShouldClose(window))
 	{
 
-            if (degree == 3)
-                generateQuadratics(&points, &colours);
-            else
-                generateCubics(&points, &colours);
+            if (scene == 1) {
+                if (degree == 3)
+                    generateQuadratics(&points, &colours);
+                else
+                    generateCubics(&points, &colours);
+            } else if (scene == 2) {
+                generateName(&points, &colours, "fonts/Inconsolata.otf");
+            }
 
             LoadGeometry(&geometry, points.data(), colours.data(), points.size());
 	    // call function to draw our scene
