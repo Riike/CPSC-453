@@ -27,8 +27,6 @@ void main()
 	float b0 = gl_TessCoord.x;
         float b1 = 1.0f - b0;
 
-	vec3 startColour = teColour[0];
-	vec3 endColour = teColour[1];
         vec2 position;
 
 	vec2 p0 = gl_in[0].gl_Position.xy;

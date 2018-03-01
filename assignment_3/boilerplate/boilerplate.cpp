@@ -45,6 +45,7 @@ GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader, GLuint tcsShader,
 
 int scene = 1;
 int font = 1;
+int scrollFont = 1;
 int degree = 3;
 
 // --------------------------------------------------------------------------
@@ -201,6 +202,7 @@ void RenderScene(Geometry *geometry, GLuint program1, GLuint program2)
             glUseProgram(program2);
             glPointSize(8.0f);
             glDrawArrays(GL_POINTS, 0, geometry->elementCount);
+            glDrawArrays(GL_LINE_STRIP, 0, geometry->elementCount);
         }
 
         glUseProgram(program1);
