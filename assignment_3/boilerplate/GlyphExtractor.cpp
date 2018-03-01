@@ -20,7 +20,7 @@
 #include <iostream>
 
 // set this true to print information about the font loaded and glyphs extracted
-#define DEBUG_PRINT 1
+#define DEBUG_PRINT 0
 
 using namespace std;
 

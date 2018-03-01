@@ -44,6 +44,7 @@ GLuint CompileShader(GLenum shaderType, const string &source);
 GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader, GLuint tcsShader, GLuint tesShader);
 
 int scene = 1;
+int font = 1;
 int degree = 3;
 
 // --------------------------------------------------------------------------
@@ -196,9 +197,11 @@ void RenderScene(Geometry *geometry, GLuint program1, GLuint program2)
 	// scene geometry, then tell OpenGL to draw our geometry
         glBindVertexArray(geometry->vertexArray);
 
-        glUseProgram(program2);
-        glPointSize(8.0f);
-        glDrawArrays(GL_POINTS, 0, geometry->elementCount);
+        if (scene == 1) {
+            glUseProgram(program2);
+            glPointSize(8.0f);
+            glDrawArrays(GL_POINTS, 0, geometry->elementCount);
+        }
 
         glUseProgram(program1);
         GLint degreeLoc = glGetUniformLocation(program1, "degree");
@@ -238,6 +241,13 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
                 else
                     degree = 3;
             }
+
+            if (scene == 2) {
+                if (font == 3)
+                    font = 1;
+                else
+                    font++;
+            }
         }
 
         if (key == GLFW_KEY_DOWN) {
@@ -246,6 +256,13 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
                    degree--;
                 else
                     degree = 4;
+            }
+
+            if (scene == 2) {
+                if (font == 1)
+                    font = 3;
+                else
+                    font--;
             }
         }
 
@@ -342,56 +359,89 @@ float findMidpoint(float a, float b) {
     return (a + b) / 2.0f;
 }
 
-void generateName(vector<vec2>* points, vector<vec3>* colours, string fontFile) {
-    points->clear();
-    colours->clear();
+void generateLetter(MyGlyph glyph, vector<vec2>* points,
+                    vector<vec3>* colours, float adv, float ratio) {
+    float xBegin,yBegin;
+    float xEnd, yEnd;
+    float xMid, yMid;
 
-    if (has_suffix(fontFile, ".otf"))
-        degree = 4;
-    else if (has_suffix(fontFile, ".ttf"))
-        degree = 3;
+    for (size_t i = 0; i < glyph.contours.size(); i++) {
+        for (size_t j = 0; j < glyph.contours.at(i).size(); j++) {
+            if (glyph.contours.at(i).at(j).degree == 1) {
+                xBegin = glyph.contours.at(i).at(j).x[0] * ratio;
+                yBegin = glyph.contours.at(i).at(j).y[0] * ratio;
+                xEnd = glyph.contours.at(i).at(j).x[1] * ratio;
+                yEnd = glyph.contours.at(i).at(j).y[1] * ratio;
+                xMid = findMidpoint(xBegin, xEnd);
+                yMid = findMidpoint(yBegin, yEnd);
 
-    GlyphExtractor ge;
-    if (!ge.LoadFontFile(fontFile))
-        return;
-
-    MyGlyph H = ge.ExtractGlyph('H');
-    MyGlyph E = ge.ExtractGlyph('E');
-    MyGlyph N = ge.ExtractGlyph('N');
-    MyGlyph R = ge.ExtractGlyph('R');
-    MyGlyph Y = ge.ExtractGlyph('Y');
-
-    float xCoord;
-    float yCoord;
-
-    for (size_t i = 0; i < H.contours.size(); i++) {
-        for (size_t j = 0; j < H.contours.at(i).size(); j++) {
-            if (H.contours.at(i).at(j).degree == 1) {
-                xCoord = H.contours.at(i).at(j).x[0];
-                yCoord = H.contours.at(i).at(j).y[0];
-                points->push_back(vec2(xCoord, yCoord));
-
-                xCoord = findMidpoint(xCoord, H.contours.at(i).at(j).x[1]);
-                yCoord = findMidpoint(yCoord, H.contours.at(i).at(j).y[1]);
-                points->push_back(vec2(xCoord, yCoord));
-                points->push_back(vec2(xCoord, yCoord));
-
-                xCoord = H.contours.at(i).at(j).x[1];
-                yCoord = H.contours.at(i).at(j).y[1];
-                points->push_back(vec2(xCoord, yCoord));
+                points->push_back(vec2(xBegin - adv, yBegin - 0.2f));
+                points->push_back(vec2(xMid - adv, yMid - 0.2f));
+                if (degree == 4)
+                    points->push_back(vec2(xMid - adv, yMid - 0.2f));
+                points->push_back(vec2(xEnd - adv, yEnd - 0.2f));
 
             } else {
-                for (int k = 0; k < 4; k++) {
-                    xCoord = H.contours.at(i).at(j).x[k];
-                    yCoord = H.contours.at(i).at(j).y[k];
-                    points->push_back(vec2(xCoord, yCoord));
+                for (int k = 0; k < degree; k++) {
+                    xBegin = glyph.contours.at(i).at(j).x[k] * ratio;
+                    yBegin = glyph.contours.at(i).at(j).y[k] * ratio;
+                    points->push_back(vec2(xBegin - adv, yBegin - 0.2f));
                 }
             }
 
-            for (int k = 0; k < 4; k++)
+            for (int k = 0; k < degree; k++)
                 colours->push_back(vec3(1.0f, 1.0f, 1.0f));
         }
     }
+}
+
+void generateNameLora(vector<vec2>* points, vector<vec3>* colours) {
+    points->clear();
+    colours->clear();
+
+    degree = 3;
+
+    GlyphExtractor ge;
+    if (!ge.LoadFontFile("fonts/Lora-Regular.ttf"))
+        return;
+
+    generateLetter(ge.ExtractGlyph('H'), points, colours, 1.0f, 0.7);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, 0.5f, 0.7);
+    generateLetter(ge.ExtractGlyph('n'), points, colours, 0.15f, 0.7);
+    generateLetter(ge.ExtractGlyph('r'), points, colours, -0.275f, 0.7);
+    generateLetter(ge.ExtractGlyph('y'), points, colours, -0.6f, 0.7);
+}
+void generateNameSourceSans(vector<vec2>* points, vector<vec3>* colours) {
+    points->clear();
+    colours->clear();
+
+    degree = 4;
+
+    GlyphExtractor ge;
+    if (!ge.LoadFontFile("fonts/SourceSansPro-Regular.otf"))
+        return;
+
+    generateLetter(ge.ExtractGlyph('H'), points, colours, 1.0f, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, 0.5f, 0.85);
+    generateLetter(ge.ExtractGlyph('n'), points, colours, 0.125f, 0.85);
+    generateLetter(ge.ExtractGlyph('r'), points, colours, -0.275f, 0.85);
+    generateLetter(ge.ExtractGlyph('y'), points, colours, -0.6f, 0.85);
+}
+void generateNameInconsolata(vector<vec2>* points, vector<vec3>* colours) {
+    points->clear();
+    colours->clear();
+
+    degree = 4;
+
+    GlyphExtractor ge;
+    if (!ge.LoadFontFile("fonts/Inconsolata.otf"))
+        return;
+
+    generateLetter(ge.ExtractGlyph('H'), points, colours, 1.0f, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, 0.6f, 0.85);
+    generateLetter(ge.ExtractGlyph('n'), points, colours, 0.2f, 0.85);
+    generateLetter(ge.ExtractGlyph('r'), points, colours, -0.2f, 0.85);
+    generateLetter(ge.ExtractGlyph('y'), points, colours, -0.6f, 0.85);
 }
 
 // ==========================================================================
@@ -467,10 +517,16 @@ int main(int argc, char *argv[])
                 else
                     generateCubics(&points, &colours);
             } else if (scene == 2) {
-                generateName(&points, &colours, "fonts/Inconsolata.otf");
+                if (font == 1)
+                    generateNameLora(&points, &colours);
+                if (font == 2)
+                    generateNameSourceSans(&points, &colours);
+                if (font == 3)
+                    generateNameInconsolata(&points, &colours);
             }
 
             LoadGeometry(&geometry, points.data(), colours.data(), points.size());
+
 	    // call function to draw our scene
             RenderScene(&geometry, program1, program2);
 
