@@ -27,6 +27,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <time.h>
 
 #include "texture.h"
 #include "GlyphExtractor.h"
@@ -47,6 +48,8 @@ int scene = 1;
 int font = 1;
 int scrollFont = 1;
 int degree = 3;
+float resetTime = 16.0f;
+float scrollSpeed = 0.0f;
 
 // --------------------------------------------------------------------------
 // Functions to set up OpenGL shader programs for rendering
@@ -250,6 +253,13 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
                 else
                     font++;
             }
+
+            if (scene == 3) {
+                if (scrollFont == 3)
+                    scrollFont = 1;
+                else
+                    scrollFont++;
+            }
         }
 
         if (key == GLFW_KEY_DOWN) {
@@ -266,6 +276,13 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
                 else
                     font--;
             }
+
+            if (scene == 3) {
+                if (scrollFont == 1)
+                    scrollFont = 3;
+                else
+                    scrollFont--;
+            }
         }
 
         if (key == GLFW_KEY_RIGHT) {
@@ -281,6 +298,19 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             else
                 scene--;
         }
+
+        if (key == GLFW_KEY_D && scene == 3) {
+            if (scrollSpeed > -0.01) {
+                scrollSpeed -= 0.002;
+            }
+        }
+
+        if (key == GLFW_KEY_F && scene == 3) {
+            if (scrollSpeed < 0.04) {
+                scrollSpeed += 0.005;
+            }
+        }
+
     }
 }
 
@@ -318,30 +348,30 @@ void generateCubics(vector<vec2>* points, vector<vec3>* colours) {
     points->clear();
     colours->clear();
 
-    points->push_back(vec2(0.1f * 2 - 0.9f, 0.1f * 2 - 0.3f));
-    points->push_back(vec2(0.4f * 2 - 0.9f, 0.0f * 2 - 0.3f));
-    points->push_back(vec2(0.6f * 2 - 0.9f, 0.2f * 2 - 0.3f));
-    points->push_back(vec2(0.9f * 2 - 0.9f, 0.1f * 2 - 0.3f));
+    points->push_back(vec2(0.1f * 2 - 0.9f, 0.1f * 2 - 0.6f));
+    points->push_back(vec2(0.4f * 2 - 0.9f, 0.0f * 2 - 0.6f));
+    points->push_back(vec2(0.6f * 2 - 0.9f, 0.2f * 2 - 0.6f));
+    points->push_back(vec2(0.9f * 2 - 0.9f, 0.1f * 2 - 0.6f));
 
-    points->push_back(vec2(0.8f * 2 - 0.9f, 0.2f * 2 - 0.3f));
-    points->push_back(vec2(0.0f * 2 - 0.9f, 0.8f * 2 - 0.3f));
-    points->push_back(vec2(0.0f * 2 - 0.9f, -0.2f * 2 - 0.3f));
-    points->push_back(vec2(0.8f * 2 - 0.9f, 0.4f * 2 - 0.3f));
+    points->push_back(vec2(0.8f * 2 - 0.9f, 0.2f * 2 - 0.6f));
+    points->push_back(vec2(0.0f * 2 - 0.9f, 0.8f * 2 - 0.6f));
+    points->push_back(vec2(0.0f * 2 - 0.9f, -0.2f * 2 - 0.6f));
+    points->push_back(vec2(0.8f * 2 - 0.9f, 0.4f * 2 - 0.6f));
 
-    points->push_back(vec2(0.5f * 2 - 0.9f, 0.3f * 2 - 0.3f));
-    points->push_back(vec2(0.3f * 2 - 0.9f, 0.2f * 2 - 0.3f));
-    points->push_back(vec2(0.3f * 2 - 0.9f, 0.3f * 2 - 0.3f));
-    points->push_back(vec2(0.5f * 2 - 0.9f, 0.2f * 2 - 0.3f));
+    points->push_back(vec2(0.5f * 2 - 0.9f, 0.3f * 2 - 0.6f));
+    points->push_back(vec2(0.3f * 2 - 0.9f, 0.2f * 2 - 0.6f));
+    points->push_back(vec2(0.3f * 2 - 0.9f, 0.3f * 2 - 0.6f));
+    points->push_back(vec2(0.5f * 2 - 0.9f, 0.2f * 2 - 0.6f));
 
-    points->push_back(vec2(0.3f * 2 - 0.9f, 0.22f * 2 - 0.3f));
-    points->push_back(vec2(0.35f * 2 - 0.9f, 0.27f * 2 - 0.3f));
-    points->push_back(vec2(0.35f * 2 - 0.9f, 0.33f * 2 - 0.3f));
-    points->push_back(vec2(0.3f * 2 - 0.9f, 0.38f * 2 - 0.3f));
+    points->push_back(vec2(0.3f * 2 - 0.9f, 0.22f * 2 - 0.6f));
+    points->push_back(vec2(0.35f * 2 - 0.9f, 0.27f * 2 - 0.6f));
+    points->push_back(vec2(0.35f * 2 - 0.9f, 0.33f * 2 - 0.6f));
+    points->push_back(vec2(0.3f * 2 - 0.9f, 0.38f * 2 - 0.6f));
 
-    points->push_back(vec2(0.28f * 2 - 0.9f, 0.35f * 2 - 0.3f));
-    points->push_back(vec2(0.24f * 2 - 0.9f, 0.38f * 2 - 0.3f));
-    points->push_back(vec2(0.24f * 2 - 0.9f, 0.32f * 2 - 0.3f));
-    points->push_back(vec2(0.28f * 2 - 0.9f, 0.35f * 2 - 0.3f));
+    points->push_back(vec2(0.28f * 2 - 0.9f, 0.35f * 2 - 0.6f));
+    points->push_back(vec2(0.24f * 2 - 0.9f, 0.38f * 2 - 0.6f));
+    points->push_back(vec2(0.24f * 2 - 0.9f, 0.32f * 2 - 0.6f));
+    points->push_back(vec2(0.28f * 2 - 0.9f, 0.35f * 2 - 0.6f));
 
     for (int i = 0; i < 5; i++) {
         colours->push_back(vec3(1, 0, 0));
@@ -446,6 +476,182 @@ void generateNameInconsolata(vector<vec2>* points, vector<vec3>* colours) {
     generateLetter(ge.ExtractGlyph('y'), points, colours, -0.6f, 0.85);
 }
 
+void generateSentenceInconsolata(vector<vec2>* points, vector<vec3>* colours, float time) {
+    points->clear();
+    colours->clear();
+
+    degree = 4;
+
+    GlyphExtractor ge;
+    if (!ge.LoadFontFile("fonts/Inconsolata.otf"))
+        return;
+
+    resetTime = 16.0f;
+
+    generateLetter(ge.ExtractGlyph('T'), points, colours, 1.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('h'), points, colours, 0.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, 0.2f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('q'), points, colours, -0.3 + time, 0.85);
+    generateLetter(ge.ExtractGlyph('u'), points, colours, -0.7f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('i'), points, colours, -1.1f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('c'), points, colours, -1.4f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('k'), points, colours, -1.8f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('b'), points, colours, -2.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('r'), points, colours, -2.7f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -3.1f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('w'), points, colours, -3.5f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('n'), points, colours, -3.9f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('f'), points, colours, -4.4f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -4.8f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('x'), points, colours, -5.2f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('j'), points, colours, -5.7f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('u'), points, colours, -6.1f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('m'), points, colours, -6.5f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('p'), points, colours, -6.9f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, -7.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('d'), points, colours, -7.7f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -8.2f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('v'), points, colours, -8.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, -9.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('r'), points, colours, -9.4f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('t'), points, colours, -9.9f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('h'), points, colours, -10.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, -10.7f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('l'), points, colours, -11.2f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('a'), points, colours, -11.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('z'), points, colours, -12.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('y'), points, colours, -12.4f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('d'), points, colours, -12.9f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -13.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('g'), points, colours, -13.7f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('.'), points, colours, -14.0f + time, 0.85);
+}
+
+void generateSentenceAlex(vector<vec2>* points, vector<vec3>* colours, float time) {
+    points->clear();
+    colours->clear();
+
+    degree = 3;
+
+    GlyphExtractor ge;
+    if (!ge.LoadFontFile("fonts/AlexBrush-Regular.ttf"))
+        return;
+
+    resetTime = 15.0f;
+
+    generateLetter(ge.ExtractGlyph('T'), points, colours, 1.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('h'), points, colours, 0.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, 0.2f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('q'), points, colours, -0.3 + time, 0.85);
+    generateLetter(ge.ExtractGlyph('u'), points, colours, -0.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('i'), points, colours, -1.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('c'), points, colours, -1.25f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('k'), points, colours, -1.6f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('b'), points, colours, -2.2f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('r'), points, colours, -2.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -3.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('w'), points, colours, -3.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('n'), points, colours, -3.7f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('f'), points, colours, -4.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -4.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('x'), points, colours, -4.9f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('j'), points, colours, -5.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('u'), points, colours, -5.8f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('m'), points, colours, -6.25f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('p'), points, colours, -6.85f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, -7.2f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('d'), points, colours, -7.5f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -8.1f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('v'), points, colours, -8.4f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, -8.7f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('r'), points, colours, -9.0f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('t'), points, colours, -9.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('h'), points, colours, -9.95f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, -10.4f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('l'), points, colours, -10.9f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('a'), points, colours, -11.2f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('z'), points, colours, -11.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('y'), points, colours, -12.0f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('d'), points, colours, -12.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -13.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('g'), points, colours, -13.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('.'), points, colours, -13.6f + time, 0.85);
+}
+
+void generateSentenceLora(vector<vec2>* points, vector<vec3>* colours, float time) {
+    points->clear();
+    colours->clear();
+
+    degree = 3;
+
+    GlyphExtractor ge;
+    if (!ge.LoadFontFile("fonts/Lora-Regular.ttf"))
+        return;
+
+    resetTime = 18;
+
+    generateLetter(ge.ExtractGlyph('T'), points, colours, 1.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('h'), points, colours, 0.45f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, 0.0f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('q'), points, colours, -0.6 + time, 0.85);
+    generateLetter(ge.ExtractGlyph('u'), points, colours, -1.1f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('i'), points, colours, -1.6f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('c'), points, colours, -1.8f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('k'), points, colours, -2.2f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('b'), points, colours, -2.8f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('r'), points, colours, -3.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -3.7f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('w'), points, colours, -4.2f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('n'), points, colours, -4.9f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('f'), points, colours, -5.7f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -6.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('x'), points, colours, -6.5f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('j'), points, colours, -7.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('u'), points, colours, -7.5f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('m'), points, colours, -8.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('p'), points, colours, -8.7f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, -9.2f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('d'), points, colours, -9.65f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -10.4f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('v'), points, colours, -10.9f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, -11.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('r'), points, colours, -11.7f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('t'), points, colours, -12.4f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('h'), points, colours, -12.8f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('e'), points, colours, -13.3f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('l'), points, colours, -14.0f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('a'), points, colours, -14.3f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('z'), points, colours, -14.8f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('y'), points, colours, -15.25f + time, 0.85);
+
+    generateLetter(ge.ExtractGlyph('d'), points, colours, -15.9f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('o'), points, colours, -16.35f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('g'), points, colours, -16.8f + time, 0.85);
+    generateLetter(ge.ExtractGlyph('.'), points, colours, -17.2f + time, 0.85);
+}
 // ==========================================================================
 // PROGRAM ENTRY POINT
 
@@ -494,6 +700,8 @@ int main(int argc, char *argv[])
         vector<vec2> points;
         vector<vec3> colours;
 
+        float timeElapsed = 0.0f;
+
         InitializeShaders(&program1, &program2);
 
 	if (program1 == 0 || program2 == 0) {
@@ -512,7 +720,6 @@ int main(int argc, char *argv[])
 	// run an event-triggered main loop
 	while (!glfwWindowShouldClose(window))
 	{
-
             if (scene == 1) {
                 if (degree == 3)
                     generateQuadratics(&points, &colours);
@@ -525,7 +732,21 @@ int main(int argc, char *argv[])
                     generateNameSourceSans(&points, &colours);
                 if (font == 3)
                     generateNameInconsolata(&points, &colours);
+            } else {
+                timeElapsed += 0.02f + scrollSpeed;
+
+                if (scrollFont == 1)
+                    generateSentenceInconsolata(&points, &colours, timeElapsed);
+                if (scrollFont == 2)
+                    generateSentenceAlex(&points, &colours, timeElapsed);
+                if (scrollFont == 3)
+                    generateSentenceLora(&points, &colours, timeElapsed);
+
+                if (timeElapsed > resetTime)
+                    timeElapsed = 0.0f;
+
             }
+
 
             LoadGeometry(&geometry, points.data(), colours.data(), points.size());
 
@@ -536,7 +757,6 @@ int main(int argc, char *argv[])
 
             glfwPollEvents();
 	}
-
 
 	// clean up allocated resources before exit
 	DestroyGeometry(&geometry);
