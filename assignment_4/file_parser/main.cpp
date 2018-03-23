@@ -72,6 +72,7 @@ int main(int argc, char *argv[]){
 		return -1;
 	}
 
+    printLines(argv[1]);
+    findNumber(argv[1]);
 	findNumbers(argv[1]);
-
 }
