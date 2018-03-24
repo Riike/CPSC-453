@@ -22,6 +22,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "glm/ext.hpp"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -277,6 +278,57 @@ void generateRays(vector<vec3>* points, vector<vec3>* colours, int width, int he
 }
 
 
+// --------------------------------------------------------------------------
+// File Parsing Functions
+
+void parseFile(string filename) {
+    ifstream f (filename);
+
+    string line;
+    while(getline(f, line)) {
+        if(line.find("light") != string::npos && line.find("#") == string::npos) {
+           vec3 position;
+           getline(f, line);
+           sscanf(line.c_str(), "%f %f %f", &position.x, &position.y, &position.z);
+        } else if (line.find("sphere") != string::npos) {
+            vec3 center;
+            float radius;
+            vec3 colour;
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &center.x, &center.y, &center.z);
+            getline(f, line);
+            sscanf(line.c_str(), "%f", &radius);
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
+        } else if (line.find("triangle") != string::npos && line.find("#") == string::npos) {
+            vec3 pointA;
+            vec3 pointB;
+            vec3 pointC;
+            vec3 colour;
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &pointA.x, &pointA.y, &pointA.z);
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &pointB.x, &pointB.y, &pointB.z);
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &pointC.x, &pointC.y, &pointC.z);
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
+            cout << glm::to_string(pointA) << endl;
+        } else if (line.find("triangle") != string::npos && line.find("#") == string::npos) {
+            vec3 normal;
+            vec3 pointQ;
+            vec3 colour;
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &normal.x, &normal.y, &normal.z);
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &pointQ.x, &pointQ.y, &pointQ.z);
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
+        }
+    }
+
+    f.close();
+}
 
 // ==========================================================================
 // PROGRAM ENTRY POINT
@@ -324,6 +376,8 @@ int main(int argc, char *argv[])
 		cout << "Program could not initialize shaders, TERMINATING" << endl;
 		return -1;
 	}
+
+    parseFile(scene1FileName);
 
 	// three vertex positions and assocated colours of a triangle
 	vec2 vertices[] = {

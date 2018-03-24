@@ -14,12 +14,15 @@
 #      - plane has a unit normal and a point on the plane
 #      - triangle has positions of its three corners, in
 #        counter-clockwise order
+#      - colour is appended at the end in rgb
 #   - syntax of the object specifications are as follows:
 #
 #      light    { x  y  z  }
 #      sphere   { x  y  z   r }
 #      plane    { xn yn zn  xq yq zq }
 #      triangle { x1 y1 z1  x2 y2 z2  x3 y3 z3 }
+#
+#       colour { r g b}
 #
 # Feel free to modify or extend this scene file to your desire
 # as you complete your ray tracing system.
@@ -33,6 +36,7 @@ light {
 sphere {
   0.9 -1.925 -6.69
   0.825
+  0.5 05 0.5
 }
 
 # Blue pyramid
@@ -40,21 +44,25 @@ triangle {
   -0.4 -2.75 -9.55
   -0.93 0.55 -8.51
   0.11 -2.75 -7.98
+  0.0 0.0 1.0
 }
 triangle {
   0.11 -2.75 -7.98
   -0.93 0.55 -8.51
   -1.46 -2.75 -7.47
+  0.0 0.0 1.0
 }
 triangle {
   -1.46 -2.75 -7.47
   -0.93 0.55 -8.51
   -1.97 -2.75 -9.04
+  0.0 0.0 1.0
 }
 triangle {
   -1.97 -2.75 -9.04
   -0.93 0.55 -8.51
   -0.4 -2.75 -9.55
+  0.0 0.0 1.0
 }
 
 # Ceiling
@@ -62,11 +70,13 @@ triangle {
   2.75 2.75 -10.5
   2.75 2.75 -5
   -2.75 2.75 -5
+  1.0 1.0 1.0
 }
 triangle {
   -2.75 2.75 -10.5
   2.75 2.75 -10.5
   -2.75 2.75 -5
+  1.0 1.0 1.0
 }
 
 # Green wall on right
@@ -74,11 +84,13 @@ triangle {
   2.75 2.75 -5
   2.75 2.75 -10.5
   2.75 -2.75 -10.5
+  0.0 1.0 0.0
 }
 triangle {
   2.75 -2.75 -5
   2.75 2.75 -5
   2.75 -2.75 -10.5
+  0.0 1.0 0.0
 }
 
 # Red wall on left
@@ -86,11 +98,13 @@ triangle {
   -2.75 -2.75 -5
   -2.75 -2.75 -10.5
   -2.75 2.75 -10.5
+  1.0 0.0 0.0
 }
 triangle {
   -2.75 2.75 -5
   -2.75 -2.75 -5
   -2.75 2.75 -10.5
+  1.0 0.0 0.0
 }
 
 # Floor
@@ -98,16 +112,19 @@ triangle {
   2.75 -2.75 -5
   2.75 -2.75 -10.5
   -2.75 -2.75 -10.5
+  1.0 1.0 1.0
 }
 triangle {
   -2.75 -2.75 -5
   2.75 -2.75 -5
   -2.75 -2.75 -10.5
+  1.0 1.0 1.0
 }
 
 # Back wall
 plane {
   0 0 1
   0 0 -10.5
+  1.0 1.0 1.0
 }
 
