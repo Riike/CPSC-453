@@ -206,9 +206,9 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 // Support Classes
 
 class Ray {
+public:
     vec3 origin;
     vec3 direction;
-public:
     Ray(vec3 o, vec3 d): origin(o), direction(d){}
     void normalize() {
         float mag = sqrt(pow(direction.x, 2) +
@@ -223,36 +223,37 @@ public:
 class Shape {
 public:
     virtual float intersect(Ray r) { return 0; }
-    ~Shape();
+    ~Shape() {};
 };
 
 class Sphere: public Shape {
-    vec3 colour;
+public:
     vec3 center;
     float radius;
-public:
-    Sphere(vec3 c, float r): center(c), radius(r){}
+    vec3 colour;
+    Sphere(vec3 c, float r, vec3 co): center(c), radius(r), colour(co){}
     // TODO
     float intersect(Ray r) { return 0; }
 };
 
 class Triangle: public Shape {
-    vec3 colour;
+public:
     vec3 pointA;
     vec3 pointB;
     vec3 pointC;
-public:
-    Triangle(vec3 a, vec3 b, vec3 c): pointA(c), pointB(b), pointC(c){}
+    vec3 colour;
+    Triangle(vec3 a, vec3 b, vec3 c, vec3 co):
+        pointA(c), pointB(b), pointC(c), colour(co){}
     // TODO
     float intersect(Ray r) { return 0; }
 };
 
 class Plane: public Shape {
-    vec3 colour;
+public:
     vec3 normal;
     vec3 pointQ;
-public:
-    Plane(vec3 n, vec3 q): normal(n), pointQ(q){}
+    vec3 colour;
+    Plane(vec3 n, vec3 q, vec3 c): normal(n), pointQ(q), colour(c){}
     // TODO
     float intersect(Ray r) { return 0; }
 };
@@ -281,10 +282,12 @@ void generateRays(vector<vec3>* points, vector<vec3>* colours, int width, int he
 // --------------------------------------------------------------------------
 // File Parsing Functions
 
-void parseFile(string filename) {
+void parseFile(string filename, vector<Shape>* shapes) {
     ifstream f (filename);
 
     string line;
+    vec3 colour;
+
     while(getline(f, line)) {
         if(line.find("light") != string::npos && line.find("#") == string::npos) {
            vec3 position;
@@ -293,18 +296,22 @@ void parseFile(string filename) {
         } else if (line.find("sphere") != string::npos) {
             vec3 center;
             float radius;
-            vec3 colour;
+
+            // Get the next 3 lines for center of sphere, radius, and colour
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &center.x, &center.y, &center.z);
             getline(f, line);
             sscanf(line.c_str(), "%f", &radius);
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
+
+            Sphere s (center, radius, colour);
+            shapes->push_back(s);
         } else if (line.find("triangle") != string::npos && line.find("#") == string::npos) {
             vec3 pointA;
             vec3 pointB;
             vec3 pointC;
-            vec3 colour;
+
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &pointA.x, &pointA.y, &pointA.z);
             getline(f, line);
@@ -313,17 +320,22 @@ void parseFile(string filename) {
             sscanf(line.c_str(), "%f %f %f", &pointC.x, &pointC.y, &pointC.z);
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
-            cout << glm::to_string(pointA) << endl;
-        } else if (line.find("triangle") != string::npos && line.find("#") == string::npos) {
+
+            Triangle t (pointA, pointB, pointC, colour);
+            shapes->push_back(t);
+        } else if (line.find("plane") != string::npos && line.find("#") == string::npos) {
             vec3 normal;
             vec3 pointQ;
-            vec3 colour;
+
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &normal.x, &normal.y, &normal.z);
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &pointQ.x, &pointQ.y, &pointQ.z);
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
+
+            Plane p (normal, pointQ, colour);
+            shapes->push_back(p);
         }
     }
 
@@ -377,7 +389,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-    parseFile(scene1FileName);
+    vector<Shape> scene1Shapes;
+    parseFile(scene1FileName, &scene1Shapes);
 
 	// three vertex positions and assocated colours of a triangle
 	vec2 vertices[] = {
