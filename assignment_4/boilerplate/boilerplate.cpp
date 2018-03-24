@@ -208,7 +208,7 @@ class Ray {
     vec3 origin;
     vec3 direction;
 public:
-    Ray(vec3 o, vec3 d): origin(o), direction(d){};
+    Ray(vec3 o, vec3 d): origin(o), direction(d){}
     void normalize() {
         float mag = sqrt(pow(direction.x, 2) +
                          pow(direction.y, 2) +
@@ -217,6 +217,43 @@ public:
         direction.y /= mag;
         direction.z /= mag;
     }
+};
+
+class Shape {
+public:
+    virtual float intersect(Ray r) { return 0; }
+    ~Shape();
+};
+
+class Sphere: public Shape {
+    vec3 colour;
+    vec3 center;
+    float radius;
+public:
+    Sphere(vec3 c, float r): center(c), radius(r){}
+    // TODO
+    float intersect(Ray r) { return 0; }
+};
+
+class Triangle: public Shape {
+    vec3 colour;
+    vec3 pointA;
+    vec3 pointB;
+    vec3 pointC;
+public:
+    Triangle(vec3 a, vec3 b, vec3 c): pointA(c), pointB(b), pointC(c){}
+    // TODO
+    float intersect(Ray r) { return 0; }
+};
+
+class Plane: public Shape {
+    vec3 colour;
+    vec3 normal;
+    vec3 pointQ;
+public:
+    Plane(vec3 n, vec3 q): normal(n), pointQ(q){}
+    // TODO
+    float intersect(Ray r) { return 0; }
 };
 
 // --------------------------------------------------------------------------
