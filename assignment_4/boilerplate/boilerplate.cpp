@@ -224,6 +224,13 @@ float findDiscriminant(float a, float b, float c) {
     return pow(b, 2) -  a * c;
 }
 
+float max(float a, float b) {
+    if (a > b) {
+        return a;
+    }
+    return b;
+}
+
 // --------------------------------------------------------------------------
 // Support Classes
 
@@ -243,15 +250,16 @@ public:
 class Light {
 public:
 	vec3 position;
-    Light(vec3 p): position(p) {}
+    float intensity;
+    Light(vec3 p, float i): position(p), intensity(i) {}
 };
 
 class Shape {
 public:
+    vec3 colour;
+    Shape(vec3 c): colour(c) {}
     virtual float intersect(Ray r) = 0;
-	virtual vec3 getColour(){
-		return this->getColour();
-	}
+    virtual vec3 getNormal(vec3 point) = 0;
     virtual ~Shape() {}
 };
 
@@ -259,8 +267,7 @@ class Sphere: public Shape {
 public:
     vec3 center;
     float radius;
-    vec3 colour;
-    Sphere(vec3 c, float r, vec3 co): center(c), radius(r), colour(co) {}
+    Sphere(vec3 c, float r, vec3 co): Shape(co), center(c), radius(r) {}
     float intersect(Ray r) {
         vec3 originToCenter = r.origin - center;
 
@@ -285,29 +292,32 @@ public:
         return t;
     }
 
-	vec3 getColour(){
-		return colour;
-	}
+    vec3 getNormal(vec3 point) {
+        return point - center;
+    }
 };
 
 class Plane: public Shape {
 public:
     vec3 normal;
     vec3 pointQ;
-    vec3 colour;
-    Plane(vec3 n, vec3 q, vec3 c): normal(n), pointQ(q), colour(c) {}
+    Plane(vec3 n, vec3 q, vec3 c): Shape(c), normal(n), pointQ(q) {}
     float intersect(Ray r) {
-        float t = dot(pointQ, normal) / dot(r.direction, normal);
+        float bottom = dot(r.direction, normal);
+        if (bottom == 0) {
+            return INFINITY;
+        }
+
+        float t = dot(pointQ, normal) / bottom;
         if (t > 0) {
             return t;
         }
-
         return INFINITY;
     }
 
-	vec3 getColour(){
-		return colour;
-	}
+    vec3 getNormal(vec3 point) {
+        return normal;
+    }
 };
 
 class Triangle: public Shape {
@@ -315,9 +325,8 @@ public:
     vec3 pointA;
     vec3 pointB;
     vec3 pointC;
-    vec3 colour;
     Triangle(vec3 a, vec3 b, vec3 c, vec3 co):
-        pointA(a), pointB(b), pointC(c), colour(co) {}
+        Shape(co), pointA(a), pointB(b), pointC(c) {}
     float intersect(Ray r) {
 		vec3 ve = r.origin;
 		vec3 vd = r.direction;
@@ -351,44 +360,60 @@ public:
 		return t;
     }
 
-	vec3 getColour(){
-		return colour;
-	}
+    vec3 getNormal(vec3 point) {
+        vec3 vab = pointB - pointA;
+        vec3 vac = pointC - pointA;
+        return crossProduct(vab, vac);
+    }
 };
 
 // --------------------------------------------------------------------------
 // Support Functions
 
-vec3 pixelColour(Ray r, vector<Shape*> shapes) {
-    vec3 colour;
-    float closestPoint = INFINITY;
+vec3 getPixelColour(Ray r, vector<Shape*> shapes, Light light) {
+    vec3 kd;
+    vec3 normal;
+    vec3 incidentPoint;
+    float closert = INFINITY;
 
-    for(int k = 0; k < shapes.size(); k++){
-        float t = shapes.at(k)->intersect(r);
-        if(t < closestPoint){
-            closestPoint = t;
-            colour = shapes.at(k)->getColour();
+    for(int i = 0; i < shapes.size(); i++){
+        float t = shapes.at(i)->intersect(r);
+        if(t < closert){
+            closert = t;
+            incidentPoint = closert * r.direction;
+            kd = shapes.at(i)->colour;
+            normal = shapes.at(i)->getNormal(incidentPoint);
         }
     }
-    return colour;
+
+    float I = light.intensity;
+    vec3 l = light.position - incidentPoint;
+
+    l /= findMagnitude(l);
+    normal /= findMagnitude(normal);
+    incidentPoint /= findMagnitude(incidentPoint);
+
+    vec3 L = kd * I * max(0, dot(normal, l));
+
+    return L;
 }
 
-void generateRays(vector<vec2>* points, vector<vec3>* colours, vector<Shape*> s, int width, int height, float f) {
-    points->clear();
+void generateRays(vector<vec2>* pts, vector<vec3>* colours, vector<Shape*> s, Light l, int w, int h, float f) {
+    pts->clear();
     colours-> clear();
 
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
-            float x = -width / 2 + i + 0.5;
-            float y = height / 2 - j + 0.5;
+    for (int i = 0; i < w; i++) {
+        for (int j = 0; j < h; j++) {
+            float x = -w / 2 + i + 0.5;
+            float y = h / 2 - j + 0.5;
             float z = -f;
 
             Ray r = Ray(vec3(0, 0, 0), vec3(x, y, z));
             r.normalize();
 
-            vec3 colour = pixelColour(r, s);
+            vec3 colour = getPixelColour(r, s, l);
 
-            points->push_back(vec2(x/(width/2), y/(height/2)));
+            pts->push_back(vec2(x/(w/2), y/(h/2)));
             colours->push_back(colour);
         }
     }
@@ -397,7 +422,7 @@ void generateRays(vector<vec2>* points, vector<vec3>* colours, vector<Shape*> s,
 // --------------------------------------------------------------------------
 // File Parsing Functions
 
-void parseFile(string filename, vector<Shape*>* shapes) {
+void parseFile(string filename, vector<Shape*>* shapes, Light** l) {
     ifstream f (filename);
 
     string line;
@@ -406,8 +431,14 @@ void parseFile(string filename, vector<Shape*>* shapes) {
     while(getline(f, line)) {
         if(line.find("light") != string::npos && line.find("#") == string::npos) {
            vec3 position;
+           float intensity;
+
            getline(f, line);
            sscanf(line.c_str(), "%f %f %f", &position.x, &position.y, &position.z);
+           getline(f, line);
+           sscanf(line.c_str(), "%f", &intensity);
+
+           *l = new Light(position, intensity);
         } else if (line.find("sphere") != string::npos && line.find("#") == string::npos) {
             vec3 center;
             float radius;
@@ -502,7 +533,9 @@ int main(int argc, char *argv[])
 	}
 
     vector<Shape*> scene1Shapes;
-    parseFile(scene1FileName, &scene1Shapes);
+    Light* light1;
+
+    parseFile(scene1FileName, &scene1Shapes, &light1);
 
     vector<vec2> points;
     vector<vec3> colours;
@@ -515,10 +548,11 @@ int main(int argc, char *argv[])
 	if(!LoadGeometry(&geometry, points.data(), colours.data(), points.size()))
 		cout << "Failed to load geometry" << endl;
 
+
 	// run an event-triggered main loop
 	while (!glfwWindowShouldClose(window))
 	{
-        generateRays(&points, &colours, scene1Shapes, width, height, depth);
+        generateRays(&points, &colours, scene1Shapes, *light1, width, height, depth);
         LoadGeometry(&geometry, points.data(), colours.data(), points.size());
 		// call function to draw our scene
 		RenderScene(&geometry, program);
