@@ -257,7 +257,8 @@ public:
 class Shape {
 public:
     vec3 colour;
-    Shape(vec3 c): colour(c) {}
+    vec3 specColour;
+    Shape(vec3 c, vec3 spc): colour(c), specColour(spc) {}
     virtual float intersect(Ray r) = 0;
     virtual vec3 getNormal(vec3 point) = 0;
     virtual ~Shape() {}
@@ -267,7 +268,7 @@ class Sphere: public Shape {
 public:
     vec3 center;
     float radius;
-    Sphere(vec3 c, float r, vec3 co): Shape(co), center(c), radius(r) {}
+    Sphere(vec3 c, float r, vec3 co, vec3 spc): Shape(co, spc), center(c), radius(r) {}
     float intersect(Ray r) {
         vec3 originToCenter = r.origin - center;
 
@@ -301,7 +302,7 @@ class Plane: public Shape {
 public:
     vec3 normal;
     vec3 pointQ;
-    Plane(vec3 n, vec3 q, vec3 c): Shape(c), normal(n), pointQ(q) {}
+    Plane(vec3 n, vec3 q, vec3 co, vec3 spc): Shape(co, spc), normal(n), pointQ(q) {}
     float intersect(Ray r) {
         float bottom = dot(r.direction, normal);
         if (bottom == 0) {
@@ -325,8 +326,8 @@ public:
     vec3 pointA;
     vec3 pointB;
     vec3 pointC;
-    Triangle(vec3 a, vec3 b, vec3 c, vec3 co):
-        Shape(co), pointA(a), pointB(b), pointC(c) {}
+    Triangle(vec3 a, vec3 b, vec3 c, vec3 co, vec3 spc):
+        Shape(co, spc), pointA(a), pointB(b), pointC(c) {}
     float intersect(Ray r) {
 		vec3 ve = r.origin;
 		vec3 vd = r.direction;
@@ -372,6 +373,8 @@ public:
 
 vec3 getPixelColour(Ray r, vector<Shape*> shapes, Light light) {
     vec3 kd;
+    vec3 ks;
+    vec3 ka;
     vec3 normal;
     vec3 incidentPoint;
     float closert = INFINITY;
@@ -382,6 +385,7 @@ vec3 getPixelColour(Ray r, vector<Shape*> shapes, Light light) {
             closert = t;
             incidentPoint = closert * r.direction;
             kd = shapes.at(i)->colour;
+            ks = shapes.at(i)->specColour;
             normal = shapes.at(i)->getNormal(incidentPoint);
         }
     }
@@ -393,7 +397,10 @@ vec3 getPixelColour(Ray r, vector<Shape*> shapes, Light light) {
     normal /= findMagnitude(normal);
     incidentPoint /= findMagnitude(incidentPoint);
 
-    vec3 L = kd * I * max(0, dot(normal, l));
+    vec3 h = (incidentPoint + l) / findMagnitude(incidentPoint + l);
+    ka = kd;
+
+    vec3 L = ka * 0.5 + kd * I * max(0, dot(normal, l)) + ks * I * max(0, pow(dot(normal, h), 100));
 
     return L;
 }
@@ -427,6 +434,7 @@ void parseFile(string filename, vector<Shape*>* shapes, Light** l) {
 
     string line;
     vec3 colour;
+    vec3 sColour;
 
     while(getline(f, line)) {
         if(line.find("light") != string::npos && line.find("#") == string::npos) {
@@ -450,8 +458,10 @@ void parseFile(string filename, vector<Shape*>* shapes, Light** l) {
             sscanf(line.c_str(), "%f", &radius);
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &sColour.x, &sColour.y, &sColour.z);
 
-            shapes->push_back(new Sphere(center, radius, colour));
+            shapes->push_back(new Sphere(center, radius, colour, sColour));
         } else if (line.find("triangle") != string::npos && line.find("#") == string::npos) {
             vec3 pointA;
             vec3 pointB;
@@ -465,8 +475,10 @@ void parseFile(string filename, vector<Shape*>* shapes, Light** l) {
             sscanf(line.c_str(), "%f %f %f", &pointC.x, &pointC.y, &pointC.z);
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &sColour.x, &sColour.y, &sColour.z);
 
-            shapes->push_back(new Triangle(pointA, pointB, pointC, colour));
+            shapes->push_back(new Triangle(pointA, pointB, pointC, colour, sColour));
         } else if (line.find("plane") != string::npos && line.find("#") == string::npos) {
             vec3 normal;
             vec3 pointQ;
@@ -477,8 +489,10 @@ void parseFile(string filename, vector<Shape*>* shapes, Light** l) {
             sscanf(line.c_str(), "%f %f %f", &pointQ.x, &pointQ.y, &pointQ.z);
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
+            getline(f, line);
+            sscanf(line.c_str(), "%f %f %f", &sColour.x, &sColour.y, &sColour.z);
 
-            shapes->push_back(new Plane(normal, pointQ, colour));
+            shapes->push_back(new Plane(normal, pointQ, colour, sColour));
         }
     }
     f.close();
