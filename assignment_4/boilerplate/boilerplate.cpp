@@ -203,6 +203,27 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 }
 
 // --------------------------------------------------------------------------
+// Math Functions
+
+float findMagnitude(vec3 v) {
+    return sqrt(pow(v.x, 2) + pow(v.y, 2) + (pow(v.z, 2)));
+}
+
+vec3 crossProduct(vec3 a, vec3 b) {
+    return vec3(a.y * b.z - a.z * b.y,
+                a.z * b.x - a.x * b.z,
+                a.x * b.y - a.y * b.x);
+}
+
+float dotProduct(vec3 a, vec3 b) {
+    return (a.x * b.x + a.y * b.y + a.z * b.z);
+}
+
+float findDiscriminant(float a, float b, float c) {
+    return pow(b, 2) - 4 * a * c;
+}
+
+// --------------------------------------------------------------------------
 // Support Classes
 
 class Ray {
@@ -211,13 +232,17 @@ public:
     vec3 direction;
     Ray(vec3 o, vec3 d): origin(o), direction(d){}
     void normalize() {
-        float mag = sqrt(pow(direction.x, 2) +
-                         pow(direction.y, 2) +
-                         pow(direction.z, 2));
+        float mag = findMagnitude(direction);
         direction.x /= mag;
         direction.y /= mag;
         direction.z /= mag;
     }
+};
+
+class Light {
+public:
+	vec3 position;
+    Light(vec3 p): position(p) {}
 };
 
 class Shape {
@@ -232,8 +257,40 @@ public:
     float radius;
     vec3 colour;
     Sphere(vec3 c, float r, vec3 co): center(c), radius(r), colour(co){}
-    // TODO
-    float intersect(Ray r) { return 0; }
+    float intersect(Ray r) {
+        vec3 originToCenter = r.origin - center;
+
+        float a = dotProduct(r.direction, r.direction);
+        float b = dotProduct(r.direction, originToCenter);
+        float c = dotProduct(originToCenter, originToCenter);
+
+        float discriminant = findDiscriminant(a, b, c);
+        if (discriminant < 0) {
+            return INFINITY;
+        }
+
+        float t;
+        float t0 = (-b + sqrt(discriminant)) / (2 * a);
+        float t1 = (-b - sqrt(discriminant)) / (2 * a);
+
+        (t0 < t1) ? t = t0 : t = t1;
+
+        return t;
+    }
+};
+
+class Plane: public Shape {
+public:
+    vec3 normal;
+    vec3 pointQ;
+    vec3 colour;
+    Plane(vec3 n, vec3 q, vec3 c): normal(n), pointQ(q), colour(c){}
+    float intersect(Ray r) {
+        float t = dot(pointQ, normal) / dot(r.direction, normal);
+        if (t > 0)
+            return t;
+        return INFINITY;
+    }
 };
 
 class Triangle: public Shape {
@@ -244,18 +301,37 @@ public:
     vec3 colour;
     Triangle(vec3 a, vec3 b, vec3 c, vec3 co):
         pointA(c), pointB(b), pointC(c), colour(co){}
-    // TODO
-    float intersect(Ray r) { return 0; }
-};
+    float intersect(Ray r) {
+		vec3 ve = r.origin;
+		vec3 vd = r.direction;
+		vec3 pa = pointA;
+		vec3 pb = pointB;
+		vec3 pc = pointC;
 
-class Plane: public Shape {
-public:
-    vec3 normal;
-    vec3 pointQ;
-    vec3 colour;
-    Plane(vec3 n, vec3 q, vec3 c): normal(n), pointQ(q), colour(c){}
-    // TODO
-    float intersect(Ray r) { return 0; }
+		float a = pa.x - pb.x;
+		float b = pa.y - pb.y;
+		float c = pa.z - pb.z;
+		float d = pa.x - pc.x;
+		float e = pa.y - pc.y;
+		float f = pa.z - pc.z;
+		float g = vd.x;
+		float h = vd.y;
+		float i = vd.z;
+		float j = pa.x - ve.x;
+		float k = pa.y - ve.y;
+		float l = pa.z - ve.z;
+
+		float M = a * (e*i-h*f) + b*(g*f-d*i) + c*(d*h-e*g);
+
+		float t = -(f * (a * k - j * b) + e * (j * c - a * l) + d * (b * l - k * c)) / M;
+		float u = (i * (a * k - j * b) + h * (j * c - a * l) + g * (b * l - k * c)) / M;
+		float v = (j * (e * i - h * f) + k * (g * f - d * i) + l * (d * h - e * g)) / M;
+
+		if (t < 0 || u < 0 || u > 1 || v < 0 || (u + v) > 1)
+            return INFINITY;
+
+		return t;
+    }
 };
 
 // --------------------------------------------------------------------------
@@ -338,7 +414,6 @@ void parseFile(string filename, vector<Shape>* shapes) {
             shapes->push_back(p);
         }
     }
-
     f.close();
 }
 
