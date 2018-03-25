@@ -1,5 +1,3 @@
-// ==========================================================================
-// Barebones OpenGL Core Profile Boilerplate
 //    using the GLFW windowing system (http://www.glfw.org)
 //
 // Loosely based on
@@ -259,7 +257,7 @@ public:
     vec3 colour;
     vec3 specColour;
     Shape(vec3 c, vec3 spc): colour(c), specColour(spc) {}
-    virtual float intersect(Ray r) = 0;
+    virtual float intersect(Ray r, float min) = 0;
     virtual vec3 getNormal(vec3 point) = 0;
     virtual ~Shape() {}
 };
@@ -269,7 +267,7 @@ public:
     vec3 center;
     float radius;
     Sphere(vec3 c, float r, vec3 co, vec3 spc): Shape(co, spc), center(c), radius(r) {}
-    float intersect(Ray r) {
+    float intersect(Ray r, float min) {
         vec3 originToCenter = r.origin - center;
 
         float a = dotProduct(r.direction, r.direction);
@@ -286,7 +284,7 @@ public:
         float t1 = (-b - sqrt(discriminant)) / a;
 
         (t0 < t1) ? t = t0 : t = t1;
-        if (t < 0) {
+        if (t < min) {
             return INFINITY;
         }
 
@@ -303,14 +301,14 @@ public:
     vec3 normal;
     vec3 pointQ;
     Plane(vec3 n, vec3 q, vec3 co, vec3 spc): Shape(co, spc), normal(n), pointQ(q) {}
-    float intersect(Ray r) {
+    float intersect(Ray r, float min) {
         float bottom = dot(r.direction, normal);
         if (bottom == 0) {
             return INFINITY;
         }
 
         float t = dot(pointQ, normal) / bottom;
-        if (t > 0) {
+        if (t > min) {
             return t;
         }
         return INFINITY;
@@ -328,7 +326,7 @@ public:
     vec3 pointC;
     Triangle(vec3 a, vec3 b, vec3 c, vec3 co, vec3 spc):
         Shape(co, spc), pointA(a), pointB(b), pointC(c) {}
-    float intersect(Ray r) {
+    float intersect(Ray r, float min) {
 		vec3 ve = r.origin;
 		vec3 vd = r.direction;
 		vec3 pa = pointA;
@@ -354,7 +352,7 @@ public:
 		float u = (i * (a * k - j * b) + h * (j * c - a * l) + g * (b * l - k * c)) / M;
 		float v = (j * (e * i - h * f) + k * (g * f - d * i) + l * (d * h - e * g)) / M;
 
-		if (t < 0 || u < 0 || u > 1 || v < 0 || (u + v) > 1) {
+		if (t < min || u < 0 || u > 1 || v < 0 || (u + v) > 1) {
             return INFINITY;
         }
 
@@ -374,13 +372,15 @@ public:
 vec3 getPixelColour(Ray r, vector<Shape*> shapes, Light light) {
     vec3 kd;
     vec3 ks;
-    vec3 ka;
     vec3 normal;
     vec3 incidentPoint;
+
+    float I = light.intensity;
+    float Ia = 0.5;
     float closert = INFINITY;
 
     for(int i = 0; i < shapes.size(); i++){
-        float t = shapes.at(i)->intersect(r);
+        float t = shapes.at(i)->intersect(r, 0);
         if(t < closert){
             closert = t;
             incidentPoint = closert * r.direction;
@@ -390,17 +390,25 @@ vec3 getPixelColour(Ray r, vector<Shape*> shapes, Light light) {
         }
     }
 
-    float I = light.intensity;
     vec3 l = light.position - incidentPoint;
 
     l /= findMagnitude(l);
+    vec3 v = -incidentPoint / findMagnitude(incidentPoint);
     normal /= findMagnitude(normal);
-    incidentPoint /= findMagnitude(incidentPoint);
 
-    vec3 h = (incidentPoint + l) / findMagnitude(incidentPoint + l);
-    ka = kd;
+    vec3 h = (v + l) / findMagnitude(v + l);
+    vec3 ka = kd;
 
-    vec3 L = ka * 0.5 + kd * I * max(0, dot(normal, l)) + ks * I * max(0, pow(dot(normal, h), 100));
+    vec3 L = ka * Ia + kd * I * max(0, dot(normal, l)) + ks * I * max(0, pow(dot(normal, h), 100));
+
+    Ray shadowRay = Ray(incidentPoint, l);
+    shadowRay.normalize();
+    for (int i = 0; i < shapes.size(); i++) {
+        vec3 intersectP = shapes.at(i)->intersect(shadowRay, 0.0001f) * shadowRay.direction;
+        if (findMagnitude(intersectP) < findMagnitude(light.position - shadowRay.origin)) {
+            L = ka * Ia;
+        }
+    }
 
     return L;
 }
