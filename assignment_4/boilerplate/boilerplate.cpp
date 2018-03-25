@@ -23,6 +23,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "glm/ext.hpp"
+// #include <unistd.h>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -175,7 +176,7 @@ void RenderScene(Geometry *geometry, GLuint program)
 	// scene geometry, then tell OpenGL to draw our geometry
 	glUseProgram(program);
 	glBindVertexArray(geometry->vertexArray);
-	glDrawArrays(GL_TRIANGLES, 0, geometry->elementCount);
+	glDrawArrays(GL_POINTS, 0, geometry->elementCount);
 
 	// reset state to default (no shader or geometry bound)
 	glBindVertexArray(0);
@@ -206,7 +207,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 // Math Functions
 
 float findMagnitude(vec3 v) {
-    return sqrt(pow(v.x, 2) + pow(v.y, 2) + (pow(v.z, 2)));
+    return sqrt(pow(v.x, 2) + pow(v.y, 2) + pow(v.z, 2));
 }
 
 vec3 crossProduct(vec3 a, vec3 b) {
@@ -220,7 +221,7 @@ float dotProduct(vec3 a, vec3 b) {
 }
 
 float findDiscriminant(float a, float b, float c) {
-    return pow(b, 2) - 4 * a * c;
+    return pow(b, 2) -  a * c;
 }
 
 // --------------------------------------------------------------------------
@@ -247,8 +248,11 @@ public:
 
 class Shape {
 public:
-    virtual float intersect(Ray r) { return 0; }
-    ~Shape() {};
+    virtual float intersect(Ray r) = 0;
+	virtual vec3 getColour(){
+		return this->getColour();
+	}
+    virtual ~Shape() {}
 };
 
 class Sphere: public Shape {
@@ -256,13 +260,13 @@ public:
     vec3 center;
     float radius;
     vec3 colour;
-    Sphere(vec3 c, float r, vec3 co): center(c), radius(r), colour(co){}
+    Sphere(vec3 c, float r, vec3 co): center(c), radius(r), colour(co) {}
     float intersect(Ray r) {
         vec3 originToCenter = r.origin - center;
 
         float a = dotProduct(r.direction, r.direction);
         float b = dotProduct(r.direction, originToCenter);
-        float c = dotProduct(originToCenter, originToCenter);
+        float c = dotProduct(originToCenter, originToCenter) - pow(radius, 2);
 
         float discriminant = findDiscriminant(a, b, c);
         if (discriminant < 0) {
@@ -270,13 +274,20 @@ public:
         }
 
         float t;
-        float t0 = (-b + sqrt(discriminant)) / (2 * a);
-        float t1 = (-b - sqrt(discriminant)) / (2 * a);
+        float t0 = (-b + sqrt(discriminant)) /  a;
+        float t1 = (-b - sqrt(discriminant)) / a;
 
         (t0 < t1) ? t = t0 : t = t1;
+        if (t < 0) {
+            return INFINITY;
+        }
 
         return t;
     }
+
+	vec3 getColour(){
+		return colour;
+	}
 };
 
 class Plane: public Shape {
@@ -284,13 +295,19 @@ public:
     vec3 normal;
     vec3 pointQ;
     vec3 colour;
-    Plane(vec3 n, vec3 q, vec3 c): normal(n), pointQ(q), colour(c){}
+    Plane(vec3 n, vec3 q, vec3 c): normal(n), pointQ(q), colour(c) {}
     float intersect(Ray r) {
         float t = dot(pointQ, normal) / dot(r.direction, normal);
-        if (t > 0)
+        if (t > 0) {
             return t;
+        }
+
         return INFINITY;
     }
+
+	vec3 getColour(){
+		return colour;
+	}
 };
 
 class Triangle: public Shape {
@@ -300,7 +317,7 @@ public:
     vec3 pointC;
     vec3 colour;
     Triangle(vec3 a, vec3 b, vec3 c, vec3 co):
-        pointA(c), pointB(b), pointC(c), colour(co){}
+        pointA(a), pointB(b), pointC(c), colour(co) {}
     float intersect(Ray r) {
 		vec3 ve = r.origin;
 		vec3 vd = r.direction;
@@ -321,44 +338,66 @@ public:
 		float k = pa.y - ve.y;
 		float l = pa.z - ve.z;
 
-		float M = a * (e*i-h*f) + b*(g*f-d*i) + c*(d*h-e*g);
+		float M = a * (e * i - h * f) + b * (g * f - d * i) + c * (d * h - e * g);
 
 		float t = -(f * (a * k - j * b) + e * (j * c - a * l) + d * (b * l - k * c)) / M;
 		float u = (i * (a * k - j * b) + h * (j * c - a * l) + g * (b * l - k * c)) / M;
 		float v = (j * (e * i - h * f) + k * (g * f - d * i) + l * (d * h - e * g)) / M;
 
-		if (t < 0 || u < 0 || u > 1 || v < 0 || (u + v) > 1)
+		if (t < 0 || u < 0 || u > 1 || v < 0 || (u + v) > 1) {
             return INFINITY;
+        }
 
 		return t;
     }
+
+	vec3 getColour(){
+		return colour;
+	}
 };
 
 // --------------------------------------------------------------------------
 // Support Functions
 
-void generateRays(vector<vec3>* points, vector<vec3>* colours, int width, int height, float f) {
+vec3 pixelColour(Ray r, vector<Shape*> shapes) {
+    vec3 colour;
+    float closestPoint = INFINITY;
+
+    for(int k = 0; k < shapes.size(); k++){
+        float t = shapes.at(k)->intersect(r);
+        if(t < closestPoint){
+            closestPoint = t;
+            colour = shapes.at(k)->getColour();
+        }
+    }
+    return colour;
+}
+
+void generateRays(vector<vec2>* points, vector<vec3>* colours, vector<Shape*> s, int width, int height, float f) {
     points->clear();
     colours-> clear();
 
-    float x = -width / 2;
-    float y = height / 2;
-    float z = -f;
-
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
-            Ray r = Ray(vec3(0, 0, 0),
-                        vec3(x + i + 0.5, y - j + 0.5, z));
+            float x = -width / 2 + i + 0.5;
+            float y = height / 2 - j + 0.5;
+            float z = -f;
+
+            Ray r = Ray(vec3(0, 0, 0), vec3(x, y, z));
             r.normalize();
+
+            vec3 colour = pixelColour(r, s);
+
+            points->push_back(vec2(x/(width/2), y/(height/2)));
+            colours->push_back(colour);
         }
     }
 }
 
-
 // --------------------------------------------------------------------------
 // File Parsing Functions
 
-void parseFile(string filename, vector<Shape>* shapes) {
+void parseFile(string filename, vector<Shape*>* shapes) {
     ifstream f (filename);
 
     string line;
@@ -369,7 +408,7 @@ void parseFile(string filename, vector<Shape>* shapes) {
            vec3 position;
            getline(f, line);
            sscanf(line.c_str(), "%f %f %f", &position.x, &position.y, &position.z);
-        } else if (line.find("sphere") != string::npos) {
+        } else if (line.find("sphere") != string::npos && line.find("#") == string::npos) {
             vec3 center;
             float radius;
 
@@ -381,8 +420,7 @@ void parseFile(string filename, vector<Shape>* shapes) {
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
 
-            Sphere s (center, radius, colour);
-            shapes->push_back(s);
+            shapes->push_back(new Sphere(center, radius, colour));
         } else if (line.find("triangle") != string::npos && line.find("#") == string::npos) {
             vec3 pointA;
             vec3 pointB;
@@ -397,8 +435,7 @@ void parseFile(string filename, vector<Shape>* shapes) {
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
 
-            Triangle t (pointA, pointB, pointC, colour);
-            shapes->push_back(t);
+            shapes->push_back(new Triangle(pointA, pointB, pointC, colour));
         } else if (line.find("plane") != string::npos && line.find("#") == string::npos) {
             vec3 normal;
             vec3 pointQ;
@@ -410,8 +447,7 @@ void parseFile(string filename, vector<Shape>* shapes) {
             getline(f, line);
             sscanf(line.c_str(), "%f %f %f", &colour.x, &colour.y, &colour.z);
 
-            Plane p (normal, pointQ, colour);
-            shapes->push_back(p);
+            shapes->push_back(new Plane(normal, pointQ, colour));
         }
     }
     f.close();
@@ -436,6 +472,7 @@ int main(int argc, char *argv[])
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	int width = 512, height = 512;
+    float depth = 470.0f;
 	window = glfwCreateWindow(width, height, "CPSC 453 Assignment 4", 0, 0);
 	if (!window) {
 		cout << "Program failed to create GLFW window, TERMINATING" << endl;
@@ -464,33 +501,25 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-    vector<Shape> scene1Shapes;
+    vector<Shape*> scene1Shapes;
     parseFile(scene1FileName, &scene1Shapes);
 
-	// three vertex positions and assocated colours of a triangle
-	vec2 vertices[] = {
-		vec2( -.6f, -.4f ),
-		vec2( .0f,  .6f ),
-		vec2( .6f, -.4f )
-	};
-
-	vec3 colours[] = {
-		vec3( 1.0f, 0.0f, 0.0f ),
-		vec3( 0.0f, 1.0f, 0.0f ),
-		vec3( 0.0f, 0.0f, 1.0f )
-	};
+    vector<vec2> points;
+    vector<vec3> colours;
 
 	// call function to create and fill buffers with geometry data
 	Geometry geometry;
 	if (!InitializeVAO(&geometry))
 		cout << "Program failed to intialize geometry!" << endl;
 
-	if(!LoadGeometry(&geometry, vertices, colours, 3))
+	if(!LoadGeometry(&geometry, points.data(), colours.data(), points.size()))
 		cout << "Failed to load geometry" << endl;
 
 	// run an event-triggered main loop
 	while (!glfwWindowShouldClose(window))
 	{
+        generateRays(&points, &colours, scene1Shapes, width, height, depth);
+        LoadGeometry(&geometry, points.data(), colours.data(), points.size());
 		// call function to draw our scene
 		RenderScene(&geometry, program);
 
