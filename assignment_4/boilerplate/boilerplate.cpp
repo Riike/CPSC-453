@@ -39,6 +39,8 @@ string LoadSource(const string &filename);
 GLuint CompileShader(GLenum shaderType, const string &source);
 GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 
+int scene = 1;
+float focalLen = 470.0f;
 string scene1FileName = "scenes/scene1.txt";
 string scene2FileName = "scenes/scene2.txt";
 string scene3FileName = "scenes/scene3.txt";
@@ -197,8 +199,32 @@ void ErrorCallback(int error, const char* description)
 // handles keyboard input events
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    if(action == GLFW_PRESS) {
+	if (key == GLFW_KEY_ESCAPE)
 		glfwSetWindowShouldClose(window, GL_TRUE);
+
+        if (key == GLFW_KEY_UP) {
+            focalLen += 10.0f;
+        }
+
+        if (key == GLFW_KEY_DOWN) {
+            focalLen -= 10.0f;
+        }
+
+        if (key == GLFW_KEY_RIGHT) {
+            if (scene == 3)
+                scene = 1;
+            else
+                scene++;
+        }
+
+        if (key == GLFW_KEY_LEFT) {
+            if (scene == 1)
+                scene = 3;
+            else
+                scene--;
+        }
+    }
 }
 
 // --------------------------------------------------------------------------
@@ -369,7 +395,7 @@ public:
 // --------------------------------------------------------------------------
 // Support Functions
 
-vec3 getPixelColour(Ray r, vector<Shape*> shapes, Light light) {
+vec3 getPixelColour(Ray r, vector<Shape*> shapes, Light light, int count) {
     vec3 kd;
     vec3 ks;
     vec3 normal;
@@ -410,6 +436,16 @@ vec3 getPixelColour(Ray r, vector<Shape*> shapes, Light light) {
         }
     }
 
+    vec3 rhs = 2 * dot(r.direction, normal) *  normal;
+    Ray reflectedRay = Ray(incidentPoint, r.direction - rhs);
+    reflectedRay.origin += 0.0001f * reflectedRay.direction;
+    reflectedRay.normalize();
+
+    if (findMagnitude(ks) > 0 && count < 10) {
+        vec3 ref = getPixelColour(reflectedRay, shapes, light, ++count);
+        L = L + ks * ref;
+    }
+
     return L;
 }
 
@@ -426,7 +462,7 @@ void generateRays(vector<vec2>* pts, vector<vec3>* colours, vector<Shape*> s, Li
             Ray r = Ray(vec3(0, 0, 0), vec3(x, y, z));
             r.normalize();
 
-            vec3 colour = getPixelColour(r, s, l);
+            vec3 colour = getPixelColour(r, s, l, 0);
 
             pts->push_back(vec2(x/(w/2), y/(h/2)));
             colours->push_back(colour);
@@ -525,7 +561,6 @@ int main(int argc, char *argv[])
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	int width = 512, height = 512;
-    float depth = 470.0f;
 	window = glfwCreateWindow(width, height, "CPSC 453 Assignment 4", 0, 0);
 	if (!window) {
 		cout << "Program failed to create GLFW window, TERMINATING" << endl;
@@ -555,9 +590,15 @@ int main(int argc, char *argv[])
 	}
 
     vector<Shape*> scene1Shapes;
+    vector<Shape*> scene2Shapes;
+    vector<Shape*> scene3Shapes;
     Light* light1;
+    Light* light2;
+    Light* light3;
 
     parseFile(scene1FileName, &scene1Shapes, &light1);
+    parseFile(scene2FileName, &scene2Shapes, &light2);
+    parseFile(scene3FileName, &scene3Shapes, &light3);
 
     vector<vec2> points;
     vector<vec3> colours;
@@ -574,7 +615,13 @@ int main(int argc, char *argv[])
 	// run an event-triggered main loop
 	while (!glfwWindowShouldClose(window))
 	{
-        generateRays(&points, &colours, scene1Shapes, *light1, width, height, depth);
+        if (scene == 1) {
+            generateRays(&points, &colours, scene1Shapes, *light1, width, height, focalLen);
+        } else if (scene == 2) {
+            generateRays(&points, &colours, scene2Shapes, *light2, width, height, focalLen);
+        } else {
+            generateRays(&points, &colours, scene3Shapes, *light3, width, height, focalLen);
+        }
         LoadGeometry(&geometry, points.data(), colours.data(), points.size());
 		// call function to draw our scene
 		RenderScene(&geometry, program);

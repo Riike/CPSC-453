@@ -35,7 +35,7 @@ OBJDIR=./obj
 
 OBJLIST=$(addprefix $(OBJDIR)/,$(notdir $(SRCLIST:.cpp=.o))) $(OBJDIR)/glad.o
 
-EXECUTABLE=boilerplate.out
+EXECUTABLE=a4.out
 
 all: buildDirectories $(EXECUTABLE)
 
