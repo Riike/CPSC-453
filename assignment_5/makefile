@@ -46,8 +46,9 @@ $(OBJDIR)/glad.o: middleware/glad/src/glad.c
 	$(CC) -c $(CFLAGS) -I$(HEADERDIR) $(INCDIR) $(LIBDIR) $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	$(CC) -c $(CFLAGS) -I$(HEADERDIR) $(INCDIR) $(LIBDIR) $< -o $@
+	$(CC) -c $(CFLAGS) -I$(HEADERDIR) $(INCDIR) $(LIBDIR) -MMD $< -o $@
 
+-include $(OBJDIR)/*.d
 
 .PHONY: buildDirectories
 buildDirectories:
@@ -55,4 +56,4 @@ buildDirectories:
 
 .PHONY: clean
 clean:
-	rm -f *.out $(OBJDIR)/*.o; rmdir obj;
+	rm -f *.out $(OBJDIR)/*.o $(OBJDIR)/*.d; rmdir obj;

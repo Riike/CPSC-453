@@ -43,8 +43,6 @@ string LoadSource(const string &filename);
 GLuint CompileShader(GLenum shaderType, const string &source);
 GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 
-bool lbPushed = false;
-
 // --------------------------------------------------------------------------
 // Functions to set up OpenGL shader programs for rendering
 
@@ -153,12 +151,6 @@ void RenderScene(Geometry *geometry, GLuint program, vec3 color, Camera* camera,
 	// scene geometry, then tell OpenGL to draw our geometry
 	glUseProgram(program);
 
-	int vp [4];
-	glGetIntegerv(GL_VIEWPORT, vp);
-	int width = vp[2];
-	int height = vp[3];
-
-
 	//Bind uniforms
 	GLint uniformLocation = glGetUniformLocation(program, "Colour");
 	glUniform3f(uniformLocation, color.r, color.g, color.b);
@@ -209,8 +201,8 @@ void generateSphere(vector<vec3>* points, float radius) {
 
     float u, v, un, vn = 0.0f;
 
-    int uNum = 31;
-    int vNum = 17;
+    int uNum = 32;
+    int vNum = 16;
 
     float ustep = 2 * PI_F / uNum;
     float vstep = PI_F / vNum;
@@ -300,36 +292,37 @@ int main(int argc, char *argv[])
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
-	// vec3 frustumVertices[] = {
-		// vec3(-1, -1, -1),
-		// vec3(-1, -1, 1),
-		// vec3(-1, 1, 1),
-		// vec3(1, 1, 1),
-		// vec3(1, 1, -1),
-		// vec3(-1, 1, -1),
-		// vec3(-1, -1, -1),
-		// vec3(1, -1, -1),
-		// vec3(1, -1, 1),
-		// vec3(-1, -1, 1),
-		// vec3(-1, 1, 1),
-		// vec3(-1, 1, -1),
-		// vec3(1, 1, -1),
-		// vec3(1, -1, -1),
-		// vec3(1, -1, 1),
-		// vec3(1, 1, 1)
-	// };
+    vec3 frustumVertices[] = {
+        vec3(-1, -1, -1),
+        vec3(-1, -1, 1),
+        vec3(-1, 1, 1),
+        vec3(1, 1, 1),
+        vec3(1, 1, -1),
+        vec3(-1, 1, -1),
+        vec3(-1, -1, -1),
+        vec3(1, -1, -1),
+        vec3(1, -1, 1),
+        vec3(-1, -1, 1),
+        vec3(-1, 1, 1),
+        vec3(-1, 1, -1),
+        vec3(1, 1, -1),
+        vec3(1, -1, -1),
+        vec3(1, -1, 1),
+        vec3(1, 1, 1)
+    };
 
     vector<vec3> points;
 
-	mat4 perspectiveMatrix = glm::perspective(PI_F*0.4f, float(width)/float(height), 0.1f, 5.f);	//Fill in with Perspective Matrix
+    //Fill in with Perspective Matrix
+	mat4 perspectiveMatrix = glm::perspective(PI_F * 0.4f, float(width) / float(height), 0.1f, 5.f);
 
-	// for(int i=0; i<16; i++){
-		// vec4 newPoint = inverse(perspectiveMatrix)*vec4(frustumVertices[i], 1);
-		// frustumVertices[i] = vec3(newPoint)/newPoint.w;
-	// }
+    for(int i=0; i<16; i++){
+        vec4 newPoint = inverse(perspectiveMatrix)*vec4(frustumVertices[i], 1);
+        frustumVertices[i] = vec3(newPoint)/newPoint.w;
+    }
 
 	Geometry geometry;
-	// Geometry frustumGeometry;
+    Geometry frustumGeometry;
 
 	// call function to create and fill buffers with geometry data
 	if (!InitializeVAO(&geometry))
@@ -338,11 +331,11 @@ int main(int argc, char *argv[])
 	if(!LoadGeometry(&geometry, points.data(), points.size()))
 		cout << "Failed to load geometry" << endl;
 
-	// if (!InitializeVAO(&frustumGeometry))
-		// cout << "Program failed to intialize geometry!" << endl;
+    if (!InitializeVAO(&frustumGeometry))
+        cout << "Program failed to intialize geometry!" << endl;
 
-	// if(!LoadGeometry(&frustumGeometry, frustumVertices, 16))
-		// cout << "Failed to load geometry" << endl;
+    if(!LoadGeometry(&frustumGeometry, frustumVertices, 16))
+        cout << "Failed to load geometry" << endl;
 
 	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
@@ -395,10 +388,8 @@ int main(int argc, char *argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         generateSphere(&points, 0.5f);
         LoadGeometry(&geometry, points.data(), points.size());
-
-		// call function to draw our scene
 		RenderScene(&geometry, program, vec3(1, 0, 0), &cam, perspectiveMatrix, GL_TRIANGLES);
-		// RenderScene(&frustumGeometry, program, vec3(0, 1, 0), &cam, perspectiveMatrix, GL_LINE_STRIP);
+        RenderScene(&frustumGeometry, program, vec3(1, 1, 1), &cam, perspectiveMatrix, GL_LINE_STRIP);
 
 		glfwSwapBuffers(window);
 
