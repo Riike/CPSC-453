@@ -21,6 +21,7 @@
 #include <iterator>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "glm/ext.hpp"
 #include <glm/gtc/type_ptr.hpp>
 
 #include <glad/glad.h>
@@ -144,7 +145,7 @@ void DestroyGeometry(Geometry *geometry)
 // --------------------------------------------------------------------------
 // Rendering function that draws our scene to the frame buffer
 
-void RenderScene(Geometry *geometry, GLuint program, vec3 color, Camera* camera, mat4 perspectiveMatrix, GLenum rendermode)
+void RenderScene(Geometry *geometry, GLuint program, vec3 color, Camera* camera, mat4 modelMatrix, mat4 perspectiveMatrix, GLenum rendermode)
 {
 
 	// bind our shader program and the vertex array object containing our
@@ -155,7 +156,7 @@ void RenderScene(Geometry *geometry, GLuint program, vec3 color, Camera* camera,
 	GLint uniformLocation = glGetUniformLocation(program, "Colour");
 	glUniform3f(uniformLocation, color.r, color.g, color.b);
 
-	mat4 modelViewProjection = perspectiveMatrix * camera->viewMatrix();
+	mat4 modelViewProjection = perspectiveMatrix * camera->viewMatrix() * modelMatrix;
 	uniformLocation = glGetUniformLocation(program, "modelViewProjection");
 	glUniformMatrix4fv(uniformLocation, 1, false, glm::value_ptr(modelViewProjection));
 
@@ -241,13 +242,79 @@ void generateSphere(vector<vec3>* points, float radius) {
 }
 
 class Node {
+public:
+    mat4 localMatrix;
+    mat4 worldMatrix;
+    vector<Node* > children;
+    Node* parent;
+    ~Node() {}
+    Node() {
+        parent = NULL;
+        localMatrix = mat4(1.0f);
+        worldMatrix = mat4(1.0f);
+    }
+
+    void addChild(Node* child) {
+        children.push_back(child);
+        child->parent = this;
+    }
+
+    void updateWorldMatrix(Node* p) {
+        if (p == NULL) {
+            worldMatrix = localMatrix;
+        } else {
+            worldMatrix = localMatrix * p->worldMatrix;
+        }
+
+        for (Node* i : children) {
+            i->updateWorldMatrix(i->parent);
+        }
+    }
 };
+
 
 // ==========================================================================
 // PROGRAM ENTRY POINT
 
 int main(int argc, char *argv[])
 {
+    Node sun;
+    sun.localMatrix = translate(sun.localMatrix, vec3(0, 0, 0));
+
+    Node earth;
+    earth.localMatrix = translate(earth.localMatrix, vec3(2, 0, 0));
+    earth.localMatrix = scale(earth.localMatrix, vec3(0.5, 0.5, 0.5));
+
+
+    Node moon;
+    moon.localMatrix = translate(moon.localMatrix, vec3(2, 0, 0));
+    moon.localMatrix = scale(moon.localMatrix, vec3(0.25, 0.25, 0.25));
+
+    sun.addChild(&earth);
+    earth.addChild(&moon);
+
+    cout << "Sun Local: " << to_string(sun.localMatrix) << endl;
+    cout << "Sun World: " << to_string(sun.worldMatrix) << endl;
+
+    cout << "Earth Local: " << to_string(earth.localMatrix) << endl;
+    cout << "Earth World: " << to_string(earth.worldMatrix) << endl;
+
+    cout << "Moon Local: " << to_string(moon.localMatrix) << endl;
+    cout << "Moon World: " << to_string(moon.worldMatrix) << endl;
+
+    sun.updateWorldMatrix(NULL);
+
+    cout << "AFTER UPDATING" << endl;
+
+    cout << "Sun Local: " << to_string(sun.localMatrix) << endl;
+    cout << "Sun World: " << to_string(sun.worldMatrix) << endl;
+
+    cout << "Earth Local: " << to_string(earth.localMatrix) << endl;
+    cout << "Earth World: " << to_string(earth.worldMatrix) << endl;
+
+    cout << "Moon Local: " << to_string(moon.localMatrix) << endl;
+    cout << "Moon World: " << to_string(moon.worldMatrix) << endl;
+
 	// initialize the GLFW windowing system
 	if (!glfwInit()) {
 		cout << "ERROR: GLFW failed to initialize, TERMINATING" << endl;
@@ -296,7 +363,7 @@ int main(int argc, char *argv[])
     vector<vec3> points;
 
     //Fill in with Perspective Matrix
-	mat4 perspectiveMatrix = glm::perspective(PI_F * 0.4f, float(width) / float(height), 0.1f, 5.f);
+	mat4 perspectiveMatrix = glm::perspective(PI_F * 0.4f, float(width) / float(height), 0.1f, 10.f);
 
 	Geometry geometry;
 
@@ -357,7 +424,9 @@ int main(int argc, char *argv[])
 
         LoadGeometry(&geometry, points.data(), points.size());
 
-		RenderScene(&geometry, program, vec3(1, 0, 0), &cam, perspectiveMatrix, GL_TRIANGLES);
+		RenderScene(&geometry, program, vec3(1, 0, 0), &cam, sun.worldMatrix, perspectiveMatrix, GL_TRIANGLES);
+		RenderScene(&geometry, program, vec3(0, 0, 1), &cam, earth.worldMatrix, perspectiveMatrix, GL_TRIANGLES);
+		RenderScene(&geometry, program, vec3(1, 1, 1), &cam, moon.worldMatrix, perspectiveMatrix, GL_TRIANGLES);
 
 		glfwSwapBuffers(window);
 
