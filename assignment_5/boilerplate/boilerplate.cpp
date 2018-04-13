@@ -155,7 +155,7 @@ void RenderScene(Geometry *geometry, GLuint program, vec3 color, Camera* camera,
 	GLint uniformLocation = glGetUniformLocation(program, "Colour");
 	glUniform3f(uniformLocation, color.r, color.g, color.b);
 
-	mat4 modelViewProjection = perspectiveMatrix*camera->viewMatrix();
+	mat4 modelViewProjection = perspectiveMatrix * camera->viewMatrix();
 	uniformLocation = glGetUniformLocation(program, "modelViewProjection");
 	glUniformMatrix4fv(uniformLocation, 1, false, glm::value_ptr(modelViewProjection));
 
@@ -240,6 +240,8 @@ void generateSphere(vector<vec3>* points, float radius) {
     }
 }
 
+class Node {
+};
 
 // ==========================================================================
 // PROGRAM ENTRY POINT
@@ -288,41 +290,15 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
-
-    vec3 frustumVertices[] = {
-        vec3(-1, -1, -1),
-        vec3(-1, -1, 1),
-        vec3(-1, 1, 1),
-        vec3(1, 1, 1),
-        vec3(1, 1, -1),
-        vec3(-1, 1, -1),
-        vec3(-1, -1, -1),
-        vec3(1, -1, -1),
-        vec3(1, -1, 1),
-        vec3(-1, -1, 1),
-        vec3(-1, 1, 1),
-        vec3(-1, 1, -1),
-        vec3(1, 1, -1),
-        vec3(1, -1, -1),
-        vec3(1, -1, 1),
-        vec3(1, 1, 1)
-    };
 
     vector<vec3> points;
 
     //Fill in with Perspective Matrix
 	mat4 perspectiveMatrix = glm::perspective(PI_F * 0.4f, float(width) / float(height), 0.1f, 5.f);
 
-    for(int i=0; i<16; i++){
-        vec4 newPoint = inverse(perspectiveMatrix)*vec4(frustumVertices[i], 1);
-        frustumVertices[i] = vec3(newPoint)/newPoint.w;
-    }
-
 	Geometry geometry;
-    Geometry frustumGeometry;
 
 	// call function to create and fill buffers with geometry data
 	if (!InitializeVAO(&geometry))
@@ -331,16 +307,9 @@ int main(int argc, char *argv[])
 	if(!LoadGeometry(&geometry, points.data(), points.size()))
 		cout << "Failed to load geometry" << endl;
 
-    if (!InitializeVAO(&frustumGeometry))
-        cout << "Program failed to intialize geometry!" << endl;
-
-    if(!LoadGeometry(&frustumGeometry, frustumVertices, 16))
-        cout << "Failed to load geometry" << endl;
-
 	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 	Camera cam;
-
 	vec2 lastCursorPos;
 
 	float cursorSensitivity = PI_F/200.f;	//PI/hundred pixels
@@ -359,12 +328,8 @@ int main(int argc, char *argv[])
 			movement.z += 1.f;
 		if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 			movement.z -= 1.f;
-		if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			movement.x += 1.f;
-		if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			movement.x -= 1.f;
 
-		cam.move(movement*movementSpeed);
+		cam.move(movement * movementSpeed);
 
 
 		//Rotation
@@ -374,8 +339,9 @@ int main(int argc, char *argv[])
 		vec2 cursorChange = cursorPos - lastCursorPos;
 
 		if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){
-			cam.rotateHorizontal(-cursorChange.x*cursorSensitivity);
-			cam.rotateVertical(-cursorChange.y*cursorSensitivity);
+            cam.rotateSpherical(-cursorChange.x * cursorSensitivity, -cursorChange.y * cursorSensitivity);
+            // cam.rotateHorizontal(-cursorChange.x * cursorSensitivity);
+            // cam.rotateVertical(-cursorChange.y * cursorSensitivity);
 		}
 
 		lastCursorPos = cursorPos;
@@ -386,10 +352,12 @@ int main(int argc, char *argv[])
 
 		// clear screen to a dark grey colour
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         generateSphere(&points, 0.5f);
+
         LoadGeometry(&geometry, points.data(), points.size());
+
 		RenderScene(&geometry, program, vec3(1, 0, 0), &cam, perspectiveMatrix, GL_TRIANGLES);
-        RenderScene(&frustumGeometry, program, vec3(1, 1, 1), &cam, perspectiveMatrix, GL_LINE_STRIP);
 
 		glfwSwapBuffers(window);
 
