@@ -105,8 +105,8 @@ bool InitializeVAO(Geometry *geometry) {
 	// create an array buffer object for storing our vertices
 	glGenBuffers(1, &geometry->vertexBuffer);
 
-        // array buffer object for storing texture coordinates
-        glGenBuffers(1, &geometry->textureBuffer);
+    // array buffer object for storing texture coordinates
+    glGenBuffers(1, &geometry->textureBuffer);
 
 	//Set up Vertex Array Object
 	// create a vertex array object encapsulating all our vertex attributes
@@ -124,15 +124,15 @@ bool InitializeVAO(Geometry *geometry) {
 		0);					//Offset to first element
 	glEnableVertexAttribArray(VERTEX_INDEX);
 
-        glBindBuffer(GL_ARRAY_BUFFER, geometry->textureBuffer);
-        glVertexAttribPointer(
-                TEXTURE_INDEX,
-                2,
-                GL_FLOAT,
-                GL_FALSE,
-                sizeof(vec2),
-                0);
-        glEnableVertexAttribArray(TEXTURE_INDEX);
+    glBindBuffer(GL_ARRAY_BUFFER, geometry->textureBuffer);
+    glVertexAttribPointer(
+            TEXTURE_INDEX,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            sizeof(vec2),
+            0);
+    glEnableVertexAttribArray(TEXTURE_INDEX);
 
 	// unbind our buffers, resetting to default state
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -417,7 +417,7 @@ int main(int argc, char *argv[])
         MyTexture texture;
         string fileName = "images/image1-mandrill.png";
 
-        InitializeTexture(&texture, fileName.c_str(), GL_TEXTURE_2D);
+        cout << InitializeTexture(&texture, fileName.c_str(), GL_TEXTURE_2D);
 
 	// call function to create and fill buffers with geometry data
 	Geometry geometry;

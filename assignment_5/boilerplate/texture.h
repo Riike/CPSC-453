@@ -9,7 +9,7 @@ struct MyTexture
 {
 	GLuint textureID;	//Handle for OpenGL texture object
 	GLenum target;		//Type of texture eg:: GL_TEXTURE_2D or GL_TEXTURE_RECTANGLE
-	int width;			
+	int width;
 	int height;
 
 	// initialize object names to zero (OpenGL reserved value)

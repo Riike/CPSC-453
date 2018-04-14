@@ -89,10 +89,12 @@ struct Geometry
 bool InitializeVAO(Geometry *geometry){
 
 	const GLuint VERTEX_INDEX = 0;
+	const GLuint TEXTURE_INDEX = 1;
 
 	//Generate Vertex Buffer Objects
 	// create an array buffer object for storing our vertices
 	glGenBuffers(1, &geometry->vertexBuffer);
+	glGenBuffers(1, &geometry->textureBuffer);
 
 	//Set up Vertex Array Object
 	// create a vertex array object encapsulating all our vertex attributes
@@ -110,6 +112,16 @@ bool InitializeVAO(Geometry *geometry){
 		0);					//Offset to first element
 	glEnableVertexAttribArray(VERTEX_INDEX);
 
+    glBindBuffer(GL_ARRAY_BUFFER, geometry->textureBuffer);
+    glVertexAttribPointer(
+            TEXTURE_INDEX,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            sizeof(vec2),
+            0);
+    glEnableVertexAttribArray(TEXTURE_INDEX);
+
 	// unbind our buffers, resetting to default state
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -118,13 +130,16 @@ bool InitializeVAO(Geometry *geometry){
 }
 
 // create buffers and fill with geometry data, returning true if successful
-bool LoadGeometry(Geometry *geometry, vec3 *vertices, int elementCount)
+bool LoadGeometry(Geometry *geometry, vec3 *vertices, vec2 *texCoords, int elementCount)
 {
 	geometry->elementCount = elementCount;
 
 	// create an array buffer object for storing our vertices
 	glBindBuffer(GL_ARRAY_BUFFER, geometry->vertexBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3)*geometry->elementCount, vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, geometry->textureBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec2)*geometry->elementCount, texCoords, GL_STATIC_DRAW);
 
 	//Unbind buffer to reset to default state
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -145,23 +160,25 @@ void DestroyGeometry(Geometry *geometry)
 // --------------------------------------------------------------------------
 // Rendering function that draws our scene to the frame buffer
 
-void RenderScene(Geometry *geometry, GLuint program, vec3 color, Camera* camera, mat4 modelMatrix, mat4 perspectiveMatrix, GLenum rendermode)
+void RenderScene(Geometry *geometry, GLuint program, Camera* camera, mat4 modelMatrix, mat4 perspectiveMatrix, GLenum rendermode, int nodeType)
 {
-
 	// bind our shader program and the vertex array object containing our
 	// scene geometry, then tell OpenGL to draw our geometry
 	glUseProgram(program);
 
 	//Bind uniforms
-	GLint uniformLocation = glGetUniformLocation(program, "Colour");
-	glUniform3f(uniformLocation, color.r, color.g, color.b);
+	// GLint uniformLocation = glGetUniformLocation(program, "Colour");
+	// glUniform3f(uniformLocation, color.r, color.g, color.b);
 
 	mat4 modelViewProjection = perspectiveMatrix * camera->viewMatrix() * modelMatrix;
-	uniformLocation = glGetUniformLocation(program, "modelViewProjection");
+	GLint uniformLocation = glGetUniformLocation(program, "modelViewProjection");
 	glUniformMatrix4fv(uniformLocation, 1, false, glm::value_ptr(modelViewProjection));
 
+	uniformLocation = glGetUniformLocation(program, "nodeType");
+	glUniform1i(uniformLocation, nodeType);
+
 	glBindVertexArray(geometry->vertexArray);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glDrawArrays(rendermode, 0, geometry->elementCount);
 
 	// reset state to default (no shader or geometry bound)
@@ -196,20 +213,22 @@ vec3 generateParametricPoint(float u, float v, float r) {
     return vec3(cos(u) * sin(v) * r, cos(v) * r, sin(u) * sin(v) * r);
 }
 
-void generateSphere(vector<vec3>* points, float radius) {
+void generateSphere(vector<vec3>* points, vector<vec2>* uvs, float radius) {
 
     points->clear();
+    uvs->clear();
 
     float u, v, un, vn = 0.0f;
 
-    int uNum = 32;
-    int vNum = 16;
+    int uNum = 30;
+    int vNum = 15;
 
     float ustep = 2 * PI_F / uNum;
     float vstep = PI_F / vNum;
 
     for(int i = 0; i < uNum; i++) {
         for (int j = 0; j < vNum; j++) {
+
             u = i * ustep;
             v = j * vstep;
 
@@ -237,6 +256,14 @@ void generateSphere(vector<vec3>* points, float radius) {
             points->push_back(p3);
             points->push_back(p1);
             points->push_back(p2);
+
+            uvs->push_back(vec2(u / (2 * PI_F), v / PI_F));
+            uvs->push_back(vec2(un / (2 * PI_F), v / PI_F));
+            uvs->push_back(vec2(u / (2 * PI_F), vn / PI_F));
+
+            uvs->push_back(vec2(un / (2 * PI_F), vn / PI_F));
+            uvs->push_back(vec2(u / (2 * PI_F), vn / PI_F));
+            uvs->push_back(vec2(un / (2 * PI_F), v / PI_F));
         }
     }
 }
@@ -361,23 +388,58 @@ int main(int argc, char *argv[])
 	glDepthFunc(GL_LEQUAL);
 
     vector<vec3> points;
+    vector<vec2> uvs;
 
     //Fill in with Perspective Matrix
-	mat4 perspectiveMatrix = glm::perspective(PI_F * 0.4f, float(width) / float(height), 0.1f, 10.f);
+	mat4 perspectiveMatrix = glm::perspective(PI_F * 0.4f, float(width) / float(height), 0.01f, 10.f);
 
 	Geometry geometry;
+	Camera cam;
+	vec2 lastCursorPos;
+
+    generateSphere(&points, &uvs, 0.5f);
 
 	// call function to create and fill buffers with geometry data
 	if (!InitializeVAO(&geometry))
 		cout << "Program failed to intialize geometry!" << endl;
 
-	if(!LoadGeometry(&geometry, points.data(), points.size()))
+	if(!LoadGeometry(&geometry, points.data(), uvs.data(), points.size()))
 		cout << "Failed to load geometry" << endl;
 
 	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-	Camera cam;
-	vec2 lastCursorPos;
+    MyTexture sunTexture;
+    string sunFile = "textures/sun.jpg";
+
+    MyTexture earthTexture;
+    string earthFile = "textures/earth.jpg";
+
+    MyTexture moonTexture;
+    string moonFile = "textures/moon.jpg";
+
+    InitializeTexture(&sunTexture, sunFile.c_str(), GL_TEXTURE_2D);
+    InitializeTexture(&earthTexture, earthFile.c_str(), GL_TEXTURE_2D);
+    InitializeTexture(&moonTexture, moonFile.c_str(), GL_TEXTURE_2D);
+
+    glUseProgram(program);
+
+    GLint sunLoc = glGetUniformLocation(program, "sunTexture");
+    glUniform1i(sunLoc, 0);
+
+    GLint earthLoc = glGetUniformLocation(program, "earthTexture");
+    glUniform1i(earthLoc, 1);
+
+    GLint moonLoc = glGetUniformLocation(program, "moonTexture");
+    glUniform1i(moonLoc, 2);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sunTexture.textureID);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, earthTexture.textureID);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, moonTexture.textureID);
 
 	float cursorSensitivity = PI_F/200.f;	//PI/hundred pixels
 	float movementSpeed = 0.01f;
@@ -407,8 +469,6 @@ int main(int argc, char *argv[])
 
 		if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){
             cam.rotateSpherical(-cursorChange.x * cursorSensitivity, -cursorChange.y * cursorSensitivity);
-            // cam.rotateHorizontal(-cursorChange.x * cursorSensitivity);
-            // cam.rotateVertical(-cursorChange.y * cursorSensitivity);
 		}
 
 		lastCursorPos = cursorPos;
@@ -420,13 +480,9 @@ int main(int argc, char *argv[])
 		// clear screen to a dark grey colour
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        generateSphere(&points, 0.5f);
-
-        LoadGeometry(&geometry, points.data(), points.size());
-
-		RenderScene(&geometry, program, vec3(1, 0, 0), &cam, sun.worldMatrix, perspectiveMatrix, GL_TRIANGLES);
-		RenderScene(&geometry, program, vec3(0, 0, 1), &cam, earth.worldMatrix, perspectiveMatrix, GL_TRIANGLES);
-		RenderScene(&geometry, program, vec3(1, 1, 1), &cam, moon.worldMatrix, perspectiveMatrix, GL_TRIANGLES);
+		RenderScene(&geometry, program, &cam, sun.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 0);
+		RenderScene(&geometry, program, &cam, earth.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 1);
+		RenderScene(&geometry, program, &cam, moon.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 2);
 
 		glfwSwapBuffers(window);
 

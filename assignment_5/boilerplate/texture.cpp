@@ -38,7 +38,7 @@ MyTexture::MyTexture() : textureID(0), target(0), width(0), height(0)
 bool InitializeTexture(MyTexture* texture, const char* filename, GLenum target)
 {
 	int numComponents;
-	stbi_set_flip_vertically_on_load(true);
+	stbi_set_flip_vertically_on_load(false);
 	unsigned char *data = stbi_load(filename, &texture->width, &texture->height, &numComponents, 0);
 	if (data != nullptr)
 	{
