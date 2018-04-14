@@ -77,12 +77,13 @@ struct Geometry
 	// OpenGL names for array buffer objects, vertex array object
 	GLuint  vertexBuffer;
 	GLuint  textureBuffer;
+    GLuint  normalBuffer;
 	GLuint  colourBuffer;
 	GLuint  vertexArray;
 	GLsizei elementCount;
 
 	// initialize object names to zero (OpenGL reserved value)
-	Geometry() : vertexBuffer(0), colourBuffer(0), vertexArray(0), elementCount(0)
+	Geometry() : vertexBuffer(0), normalBuffer(0), colourBuffer(0), vertexArray(0), elementCount(0)
 	{}
 };
 
@@ -90,11 +91,13 @@ bool InitializeVAO(Geometry *geometry){
 
 	const GLuint VERTEX_INDEX = 0;
 	const GLuint TEXTURE_INDEX = 1;
+	const GLuint NORMAL_INDEX = 2;
 
 	//Generate Vertex Buffer Objects
 	// create an array buffer object for storing our vertices
 	glGenBuffers(1, &geometry->vertexBuffer);
 	glGenBuffers(1, &geometry->textureBuffer);
+	glGenBuffers(1, &geometry->normalBuffer);
 
 	//Set up Vertex Array Object
 	// create a vertex array object encapsulating all our vertex attributes
@@ -122,6 +125,16 @@ bool InitializeVAO(Geometry *geometry){
             0);
     glEnableVertexAttribArray(TEXTURE_INDEX);
 
+	glBindBuffer(GL_ARRAY_BUFFER, geometry->normalBuffer);
+	glVertexAttribPointer(
+		NORMAL_INDEX,		//Attribute index
+		3, 					//# of components
+		GL_FLOAT, 			//Type of component
+		GL_FALSE, 			//Should be normalized?
+		sizeof(vec3),		//Stride - can use 0 if tightly packed
+		0);					//Offset to first element
+	glEnableVertexAttribArray(NORMAL_INDEX);
+
 	// unbind our buffers, resetting to default state
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -130,7 +143,7 @@ bool InitializeVAO(Geometry *geometry){
 }
 
 // create buffers and fill with geometry data, returning true if successful
-bool LoadGeometry(Geometry *geometry, vec3 *vertices, vec2 *texCoords, int elementCount)
+bool LoadGeometry(Geometry *geometry, vec3 *vertices, vec2 *texCoords, vec3 *normals, int elementCount)
 {
 	geometry->elementCount = elementCount;
 
@@ -140,6 +153,9 @@ bool LoadGeometry(Geometry *geometry, vec3 *vertices, vec2 *texCoords, int eleme
 
 	glBindBuffer(GL_ARRAY_BUFFER, geometry->textureBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec2)*geometry->elementCount, texCoords, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, geometry->normalBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3)*geometry->elementCount, normals, GL_STATIC_DRAW);
 
 	//Unbind buffer to reset to default state
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -166,13 +182,12 @@ void RenderScene(Geometry *geometry, GLuint program, Camera* camera, mat4 modelM
 	// scene geometry, then tell OpenGL to draw our geometry
 	glUseProgram(program);
 
-	//Bind uniforms
-	// GLint uniformLocation = glGetUniformLocation(program, "Colour");
-	// glUniform3f(uniformLocation, color.r, color.g, color.b);
-
 	mat4 modelViewProjection = perspectiveMatrix * camera->viewMatrix() * modelMatrix;
 	GLint uniformLocation = glGetUniformLocation(program, "modelViewProjection");
 	glUniformMatrix4fv(uniformLocation, 1, false, glm::value_ptr(modelViewProjection));
+
+	uniformLocation = glGetUniformLocation(program, "model");
+	glUniformMatrix4fv(uniformLocation, 1, false, glm::value_ptr(modelMatrix));
 
 	uniformLocation = glGetUniformLocation(program, "nodeType");
 	glUniform1i(uniformLocation, nodeType);
@@ -213,10 +228,11 @@ vec3 generateParametricPoint(float u, float v, float r) {
     return vec3(cos(u) * sin(v) * r, cos(v) * r, sin(u) * sin(v) * r);
 }
 
-void generateSphere(vector<vec3>* points, vector<vec2>* uvs, float radius) {
+void generateSphere(vector<vec3>* points, vector<vec2>* uvs, vector<vec3>* normals, float radius) {
 
     points->clear();
     uvs->clear();
+    normals->clear();
 
     float u, v, un, vn = 0.0f;
 
@@ -264,6 +280,14 @@ void generateSphere(vector<vec3>* points, vector<vec2>* uvs, float radius) {
             uvs->push_back(vec2(un / (2 * PI_F), vn / PI_F));
             uvs->push_back(vec2(u / (2 * PI_F), vn / PI_F));
             uvs->push_back(vec2(un / (2 * PI_F), v / PI_F));
+
+            normals->push_back(normalize(p0));
+            normals->push_back(normalize(p2));
+            normals->push_back(normalize(p1));
+
+            normals->push_back(normalize(p3));
+            normals->push_back(normalize(p1));
+            normals->push_back(normalize(p2));
         }
     }
 }
@@ -305,43 +329,6 @@ public:
 
 int main(int argc, char *argv[])
 {
-    Node sun;
-    sun.localMatrix = translate(sun.localMatrix, vec3(0, 0, 0));
-
-    Node earth;
-    earth.localMatrix = translate(earth.localMatrix, vec3(2, 0, 0));
-    earth.localMatrix = scale(earth.localMatrix, vec3(0.5, 0.5, 0.5));
-
-
-    Node moon;
-    moon.localMatrix = translate(moon.localMatrix, vec3(2, 0, 0));
-    moon.localMatrix = scale(moon.localMatrix, vec3(0.25, 0.25, 0.25));
-
-    sun.addChild(&earth);
-    earth.addChild(&moon);
-
-    cout << "Sun Local: " << to_string(sun.localMatrix) << endl;
-    cout << "Sun World: " << to_string(sun.worldMatrix) << endl;
-
-    cout << "Earth Local: " << to_string(earth.localMatrix) << endl;
-    cout << "Earth World: " << to_string(earth.worldMatrix) << endl;
-
-    cout << "Moon Local: " << to_string(moon.localMatrix) << endl;
-    cout << "Moon World: " << to_string(moon.worldMatrix) << endl;
-
-    sun.updateWorldMatrix(NULL);
-
-    cout << "AFTER UPDATING" << endl;
-
-    cout << "Sun Local: " << to_string(sun.localMatrix) << endl;
-    cout << "Sun World: " << to_string(sun.worldMatrix) << endl;
-
-    cout << "Earth Local: " << to_string(earth.localMatrix) << endl;
-    cout << "Earth World: " << to_string(earth.worldMatrix) << endl;
-
-    cout << "Moon Local: " << to_string(moon.localMatrix) << endl;
-    cout << "Moon World: " << to_string(moon.worldMatrix) << endl;
-
 	// initialize the GLFW windowing system
 	if (!glfwInit()) {
 		cout << "ERROR: GLFW failed to initialize, TERMINATING" << endl;
@@ -389,6 +376,7 @@ int main(int argc, char *argv[])
 
     vector<vec3> points;
     vector<vec2> uvs;
+    vector<vec3> normals;
 
     //Fill in with Perspective Matrix
 	mat4 perspectiveMatrix = glm::perspective(PI_F * 0.4f, float(width) / float(height), 0.01f, 10.f);
@@ -397,16 +385,57 @@ int main(int argc, char *argv[])
 	Camera cam;
 	vec2 lastCursorPos;
 
-    generateSphere(&points, &uvs, 0.5f);
+    generateSphere(&points, &uvs, &normals, 0.5f);
 
 	// call function to create and fill buffers with geometry data
 	if (!InitializeVAO(&geometry))
 		cout << "Program failed to intialize geometry!" << endl;
 
-	if(!LoadGeometry(&geometry, points.data(), uvs.data(), points.size()))
+	if(!LoadGeometry(&geometry, points.data(), uvs.data(), normals.data(), points.size()))
 		cout << "Failed to load geometry" << endl;
 
 	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+
+    Node sun;
+    sun.localMatrix = translate(sun.localMatrix, vec3(0, 0, 0));
+
+    Node earth;
+    earth.localMatrix = translate(earth.localMatrix, vec3(2, 0, 0));
+    earth.localMatrix = scale(earth.localMatrix, vec3(0.5, 0.5, 0.5));
+
+    Node moon;
+    moon.localMatrix = translate(moon.localMatrix, vec3(2, 0, 0));
+    moon.localMatrix = scale(moon.localMatrix, vec3(0.25, 0.25, 0.25));
+
+    Node stars;
+    stars.localMatrix = translate(stars.localMatrix, vec3(0, 0, 2));
+    stars.localMatrix = scale(stars.localMatrix, vec3(10, 10, 10));
+
+    sun.addChild(&earth);
+    sun.addChild(&stars);
+    earth.addChild(&moon);
+
+    cout << "Sun Local: " << to_string(sun.localMatrix) << endl;
+    cout << "Sun World: " << to_string(sun.worldMatrix) << endl;
+
+    cout << "Earth Local: " << to_string(earth.localMatrix) << endl;
+    cout << "Earth World: " << to_string(earth.worldMatrix) << endl;
+
+    cout << "Moon Local: " << to_string(moon.localMatrix) << endl;
+    cout << "Moon World: " << to_string(moon.worldMatrix) << endl;
+
+    sun.updateWorldMatrix(NULL);
+
+    cout << "AFTER UPDATING" << endl;
+
+    cout << "Sun Local: " << to_string(sun.localMatrix) << endl;
+    cout << "Sun World: " << to_string(sun.worldMatrix) << endl;
+
+    cout << "Earth Local: " << to_string(earth.localMatrix) << endl;
+    cout << "Earth World: " << to_string(earth.worldMatrix) << endl;
+
+    cout << "Moon Local: " << to_string(moon.localMatrix) << endl;
+    cout << "Moon World: " << to_string(moon.worldMatrix) << endl;
 
     MyTexture sunTexture;
     string sunFile = "textures/sun.jpg";
@@ -417,9 +446,13 @@ int main(int argc, char *argv[])
     MyTexture moonTexture;
     string moonFile = "textures/moon.jpg";
 
+    MyTexture starTexture;
+    string starFile = "textures/starfield.jpg";
+
     InitializeTexture(&sunTexture, sunFile.c_str(), GL_TEXTURE_2D);
     InitializeTexture(&earthTexture, earthFile.c_str(), GL_TEXTURE_2D);
     InitializeTexture(&moonTexture, moonFile.c_str(), GL_TEXTURE_2D);
+    InitializeTexture(&starTexture, starFile.c_str(), GL_TEXTURE_2D);
 
     glUseProgram(program);
 
@@ -432,6 +465,15 @@ int main(int argc, char *argv[])
     GLint moonLoc = glGetUniformLocation(program, "moonTexture");
     glUniform1i(moonLoc, 2);
 
+    GLint starLoc = glGetUniformLocation(program, "starTexture");
+    glUniform1i(starLoc, 3);
+
+    GLint loc = glGetUniformLocation(program, "earthWorld");
+    glUniformMatrix4fv(loc, 1, false, &earth.worldMatrix[0][0]);
+
+    loc = glGetUniformLocation(program, "moonWorld");
+    glUniformMatrix4fv(loc, 1, false, &moon.worldMatrix[0][0]);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, sunTexture.textureID);
 
@@ -440,6 +482,9 @@ int main(int argc, char *argv[])
 
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, moonTexture.textureID);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, starTexture.textureID);
 
 	float cursorSensitivity = PI_F/200.f;	//PI/hundred pixels
 	float movementSpeed = 0.01f;
@@ -483,6 +528,7 @@ int main(int argc, char *argv[])
 		RenderScene(&geometry, program, &cam, sun.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 0);
 		RenderScene(&geometry, program, &cam, earth.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 1);
 		RenderScene(&geometry, program, &cam, moon.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 2);
+		RenderScene(&geometry, program, &cam, stars.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 3);
 
 		glfwSwapBuffers(window);
 
