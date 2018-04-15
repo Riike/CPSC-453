@@ -448,12 +448,6 @@ int main(int argc, char *argv[])
     GLint starLoc = glGetUniformLocation(program, "starTexture");
     glUniform1i(starLoc, 3);
 
-    GLint loc = glGetUniformLocation(program, "earthWorld");
-    glUniformMatrix4fv(loc, 1, false, &earth.worldMatrix[0][0]);
-
-    loc = glGetUniformLocation(program, "moonWorld");
-    glUniformMatrix4fv(loc, 1, false, &moon.worldMatrix[0][0]);
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, sunTexture.textureID);
 
@@ -520,6 +514,16 @@ int main(int argc, char *argv[])
         mat4 earthOrbit = rotate(sun.localMatrix, theta * 0.986f, vec3(0, 1, 0));
 
         sun.updateWorldMatrix(NULL);
+
+        glUseProgram(program);
+        GLint loc = glGetUniformLocation(program, "earthWorld");
+        mat4 earthWorld = earthOrbit * earth.worldMatrix;
+        glUniformMatrix4fv(loc, 1, false, &earthWorld[0][0]);
+
+        loc = glGetUniformLocation(program, "moonWorld");
+        mat4 moonWorld = earthOrbit * moon.worldMatrix;
+        glUniformMatrix4fv(loc, 1, false, &moonWorld[0][0]);
+
 
 		RenderScene(&geometry, program, &cam, sun.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 0);
 		RenderScene(&geometry, program, &cam, earthOrbit * earth.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 1);
