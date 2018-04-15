@@ -379,7 +379,7 @@ int main(int argc, char *argv[])
     vector<vec3> normals;
 
     //Fill in with Perspective Matrix
-	mat4 perspectiveMatrix = glm::perspective(PI_F * 0.4f, float(width) / float(height), 0.01f, 10.f);
+	mat4 perspectiveMatrix = glm::perspective(PI_F * 0.4f, float(width) / float(height), 0.01f, 12.f);
 
 	Geometry geometry;
 	Camera cam;
@@ -409,33 +409,13 @@ int main(int argc, char *argv[])
 
     Node stars;
     stars.localMatrix = translate(stars.localMatrix, vec3(0, 0, 2));
-    stars.localMatrix = scale(stars.localMatrix, vec3(10, 10, 10));
+    stars.localMatrix = scale(stars.localMatrix, vec3(12, 12, 12));
 
     sun.addChild(&earth);
     sun.addChild(&stars);
     earth.addChild(&moon);
 
-    cout << "Sun Local: " << to_string(sun.localMatrix) << endl;
-    cout << "Sun World: " << to_string(sun.worldMatrix) << endl;
-
-    cout << "Earth Local: " << to_string(earth.localMatrix) << endl;
-    cout << "Earth World: " << to_string(earth.worldMatrix) << endl;
-
-    cout << "Moon Local: " << to_string(moon.localMatrix) << endl;
-    cout << "Moon World: " << to_string(moon.worldMatrix) << endl;
-
     sun.updateWorldMatrix(NULL);
-
-    cout << "AFTER UPDATING" << endl;
-
-    cout << "Sun Local: " << to_string(sun.localMatrix) << endl;
-    cout << "Sun World: " << to_string(sun.worldMatrix) << endl;
-
-    cout << "Earth Local: " << to_string(earth.localMatrix) << endl;
-    cout << "Earth World: " << to_string(earth.worldMatrix) << endl;
-
-    cout << "Moon Local: " << to_string(moon.localMatrix) << endl;
-    cout << "Moon World: " << to_string(moon.worldMatrix) << endl;
 
     MyTexture sunTexture;
     string sunFile = "textures/sun.jpg";
@@ -489,6 +469,8 @@ int main(int argc, char *argv[])
 	float cursorSensitivity = PI_F/200.f;	//PI/hundred pixels
 	float movementSpeed = 0.01f;
 
+    float time = glfwGetTime();
+
 	// run an event-triggered main loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -525,10 +507,24 @@ int main(int argc, char *argv[])
 		// clear screen to a dark grey colour
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+        float elapsed = glfwGetTime() - time;
+        float theta = radians(elapsed);
+        time = glfwGetTime();
+
+        sun.localMatrix = rotate(sun.localMatrix, theta * 14.71f, vec3(0, 1, 0));
+        stars.localMatrix = rotate(stars.localMatrix, -theta * 14.71f, vec3(0, 1, 0));
+        earth.localMatrix = rotate(earth.localMatrix, theta * 360.f, vec3(-0.435, 1, 0));
+        moon.localMatrix = rotate(moon.localMatrix, theta * 13.18f, vec3(-0.117, 1, 0));
+
+        mat4 earthOrbit = rotate(sun.localMatrix, theta * 0.986f, vec3(0, 1, 0));
+
+        sun.updateWorldMatrix(NULL);
+
 		RenderScene(&geometry, program, &cam, sun.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 0);
-		RenderScene(&geometry, program, &cam, earth.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 1);
-		RenderScene(&geometry, program, &cam, moon.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 2);
-		RenderScene(&geometry, program, &cam, stars.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 3);
+		RenderScene(&geometry, program, &cam, earthOrbit * earth.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 1);
+		RenderScene(&geometry, program, &cam, earthOrbit * moon.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 2);
+        RenderScene(&geometry, program, &cam, stars.worldMatrix, perspectiveMatrix, GL_TRIANGLES, 3);
 
 		glfwSwapBuffers(window);
 
